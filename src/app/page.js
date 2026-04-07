@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function Home() {
   const [items, setItems] = useState([]);
+  const [reportId, setReportId] = useState(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("bug");
   const [priority, setPriority] = useState("medium");
   const [screenshot, setScreenshot] = useState(null);
+  const [screenshotFile, setScreenshotFile] = useState(null);
   const [view, setView] = useState("capture");
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef(null);
 
   const categories = [
@@ -30,8 +34,31 @@ export default function Home() {
   const getCat = (id) => categories.find((c) => c.id === id) || categories[0];
   const getPri = (id) => priorities.find((p) => p.id === id) || priorities[2];
 
+  useEffect(() => {
+    loadOrCreateReport();
+  }, []);
+
+  const loadOrCreateReport = async () => {
+    try {
+      const stored = localStorage.getItem("qa_report_id");
+      if (stored) {
+        setReportId(stored);
+        const { data } = await supabase.from("items").select("*").eq("report_id", stored).order("created_at", { ascending: true });
+        if (data) setItems(data);
+      } else {
+        const newId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+        await supabase.from("reports").insert({ id: newId, title: "Test Report" });
+        localStorage.setItem("qa_report_id", newId);
+        setReportId(newId);
+      }
+    } catch (e) {
+      console.log("Supabase error:", e);
+    }
+  };
+
   const handleFile = (file) => {
     if (file && file.type.startsWith("image/")) {
+      setScreenshotFile(file);
       const reader = new FileReader();
       reader.onload = (e) => setScreenshot(e.target.result);
       reader.readAsDataURL(file);
@@ -48,37 +75,79 @@ export default function Home() {
     }
   };
 
-  const addItem = () => {
-    if (!title.trim()) return;
+  const uploadScreenshot = async (file) => {
+    try {
+      const fileName = Date.now() + "-" + Math.random().toString(36).substring(2, 8) + ".png";
+      await supabase.storage.from("screenshots").upload(fileName, file);
+      const { data } = supabase.storage.from("screenshots").getPublicUrl(fileName);
+      return data.publicUrl;
+    } catch (e) {
+      console.log("Upload error:", e);
+      return null;
+    }
+  };
+
+  const addItem = async () => {
+    if (!title.trim() || !reportId) return;
+    setSaving(true);
+
+    let imageUrl = screenshot;
+    if (screenshotFile) {
+      const url = await uploadScreenshot(screenshotFile);
+      if (url) imageUrl = url;
+    }
+
     const newItem = {
-      id: Date.now(),
-      title,
-      description,
-      category,
-      priority,
-      screenshot,
+      id: Date.now().toString(36) + Math.random().toString(36).substring(2, 8),
+      report_id: reportId,
+      title: title,
+      description: description,
+      category: category,
+      priority: priority,
+      screenshot_url: imageUrl,
       status: "todo",
-      assignee: "",
-      time: new Date().toLocaleString()
+      assignee: null
     };
-    setItems([...items, newItem]);
+
+    try {
+      await supabase.from("items").insert(newItem);
+      setItems([...items, { ...newItem, created_at: new Date().toISOString() }]);
+    } catch (e) {
+      console.log("Insert error:", e);
+    }
+
     setTitle("");
     setDescription("");
     setScreenshot(null);
+    setScreenshotFile(null);
+    setSaving(false);
   };
 
-  const removeItem = (id) => setItems(items.filter((item) => item.id !== id));
+  const removeItem = async (id) => {
+    try {
+      await supabase.from("items").delete().eq("id", id);
+      setItems(items.filter((item) => item.id !== id));
+    } catch (e) {
+      console.log("Delete error:", e);
+    }
+  };
 
-  const copyReport = () => {
-    let text = "TEST REPORT\n\n";
-    items.forEach((item, idx) => {
-      text += (idx + 1) + ". " + item.title + "\n";
-      text += "Category: " + getCat(item.category).label + "\n";
-      text += "Priority: " + getPri(item.priority).label + "\n";
-      if (item.description) text += "Details: " + item.description + "\n";
-      text += "\n";
-    });
-    navigator.clipboard.writeText(text);
+  const startNew = async () => {
+    localStorage.removeItem("qa_report_id");
+    setItems([]);
+    setReportId(null);
+    loadOrCreateReport();
+  };
+
+  const getShareUrl = () => {
+    if (typeof window !== "undefined" && reportId) {
+      return window.location.origin + "/report/" + reportId;
+    }
+    return "";
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(getShareUrl());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -95,7 +164,7 @@ export default function Home() {
           <div style={{ display: "flex", gap: "8px" }}>
             <button onClick={() => setView("capture")} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: view === "capture" ? "#3b82f6" : "white", color: view === "capture" ? "white" : "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>📸 Capture</button>
             <button onClick={() => setView("report")} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: view === "report" ? "#3b82f6" : "white", color: view === "report" ? "white" : "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>📋 Report ({items.length})</button>
-            <button onClick={() => setItems([])} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: "white", color: "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>✨ New</button>
+            <button onClick={startNew} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: "white", color: "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>✨ New</button>
           </div>
         </div>
 
@@ -138,7 +207,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <button onClick={addItem} disabled={!title.trim()} style={{ width: "100%", padding: "16px", borderRadius: "12px", border: "none", background: title.trim() ? "#3b82f6" : "#e2e8f0", color: title.trim() ? "white" : "#94a3b8", fontWeight: "700", fontSize: "16px", cursor: title.trim() ? "pointer" : "not-allowed" }}>➕ Add to Report</button>
+              <button onClick={addItem} disabled={!title.trim() || saving} style={{ width: "100%", padding: "16px", borderRadius: "12px", border: "none", background: title.trim() && !saving ? "#3b82f6" : "#e2e8f0", color: title.trim() && !saving ? "white" : "#94a3b8", fontWeight: "700", fontSize: "16px", cursor: title.trim() && !saving ? "pointer" : "not-allowed" }}>{saving ? "⏳ Saving..." : "➕ Add to Report"}</button>
             </div>
 
             <div style={{ background: "white", borderRadius: "20px", padding: "28px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", maxHeight: "600px", overflowY: "auto" }}>
@@ -160,7 +229,7 @@ export default function Home() {
                       </div>
                       <h4 style={{ margin: "10px 0 6px", fontSize: "15px", color: "#1e293b", fontWeight: "600" }}>{item.title}</h4>
                       <span style={{ color: pri.color, fontSize: "12px", fontWeight: "600" }}>● {pri.label}</span>
-                      {item.screenshot && <img src={item.screenshot} style={{ display: "block", maxWidth: "100%", maxHeight: "80px", borderRadius: "8px", marginTop: "10px" }} alt="" />}
+                      {item.screenshot_url && <img src={item.screenshot_url} style={{ display: "block", maxWidth: "100%", maxHeight: "80px", borderRadius: "8px", marginTop: "10px" }} alt="" />}
                     </div>
                   );
                 })
@@ -171,8 +240,15 @@ export default function Home() {
           <div style={{ background: "white", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
               <h2 style={{ margin: 0, fontSize: "24px", color: "#1e293b", fontWeight: "700" }}>📋 Test Report</h2>
-              <button onClick={copyReport} disabled={items.length === 0} style={{ padding: "12px 20px", borderRadius: "10px", border: "none", background: items.length > 0 ? "#10b981" : "#e2e8f0", color: items.length > 0 ? "white" : "#94a3b8", fontWeight: "600", cursor: items.length > 0 ? "pointer" : "not-allowed" }}>{copied ? "✅ Copied!" : "📋 Copy Report"}</button>
+              <button onClick={copyLink} disabled={items.length === 0} style={{ padding: "12px 20px", borderRadius: "10px", border: "none", background: items.length > 0 ? "#10b981" : "#e2e8f0", color: items.length > 0 ? "white" : "#94a3b8", fontWeight: "600", cursor: items.length > 0 ? "pointer" : "not-allowed" }}>{copied ? "✅ Link Copied!" : "🔗 Copy Share Link"}</button>
             </div>
+
+            {items.length > 0 && (
+              <div style={{ background: "#f0fdf4", borderRadius: "12px", padding: "16px", marginBottom: "24px", border: "1px solid #bbf7d0" }}>
+                <div style={{ fontSize: "13px", color: "#166534", fontWeight: "600", marginBottom: "6px" }}>📤 Share this link with developers:</div>
+                <code style={{ fontSize: "14px", color: "#15803d", wordBreak: "break-all" }}>{getShareUrl()}</code>
+              </div>
+            )}
 
             {items.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "#94a3b8" }}>
@@ -198,8 +274,8 @@ export default function Home() {
                       </div>
                       <span style={{ background: cat.bg, color: cat.color, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>{cat.emoji} {cat.label}</span>
                       {item.description && <p style={{ margin: "14px 0", fontSize: "14px", color: "#475569", lineHeight: "1.6" }}>{item.description}</p>}
-                      {item.screenshot && <img src={item.screenshot} style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", marginTop: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} alt="" />}
-                      <div style={{ marginTop: "14px", fontSize: "12px", color: "#94a3b8" }}>🕐 {item.time}</div>
+                      {item.screenshot_url && <img src={item.screenshot_url} style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", marginTop: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} alt="" />}
+                      {item.created_at && <div style={{ marginTop: "14px", fontSize: "12px", color: "#94a3b8" }}>🕐 {new Date(item.created_at).toLocaleString()}</div>}
                     </div>
                   );
                 })}
