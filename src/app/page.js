@@ -39,6 +39,7 @@ export default function Home() {
   }, []);
 
   const loadOrCreateReport = async () => {
+    if (!supabase) return;
     try {
       const stored = localStorage.getItem("qa_report_id");
       if (stored) {
@@ -76,6 +77,7 @@ export default function Home() {
   };
 
   const uploadScreenshot = async (file) => {
+    if (!supabase) return null;
     try {
       const fileName = Date.now() + "-" + Math.random().toString(36).substring(2, 8) + ".png";
       await supabase.storage.from("screenshots").upload(fileName, file);
@@ -88,11 +90,11 @@ export default function Home() {
   };
 
   const addItem = async () => {
-    if (!title.trim() || !reportId) return;
+    if (!title.trim()) return;
     setSaving(true);
 
     let imageUrl = screenshot;
-    if (screenshotFile) {
+    if (screenshotFile && supabase) {
       const url = await uploadScreenshot(screenshotFile);
       if (url) imageUrl = url;
     }
@@ -106,16 +108,19 @@ export default function Home() {
       priority: priority,
       screenshot_url: imageUrl,
       status: "todo",
-      assignee: null
+      assignee: null,
+      created_at: new Date().toISOString()
     };
 
-    try {
-      await supabase.from("items").insert(newItem);
-      setItems([...items, { ...newItem, created_at: new Date().toISOString() }]);
-    } catch (e) {
-      console.log("Insert error:", e);
+    if (supabase && reportId) {
+      try {
+        await supabase.from("items").insert(newItem);
+      } catch (e) {
+        console.log("Insert error:", e);
+      }
     }
 
+    setItems([...items, newItem]);
     setTitle("");
     setDescription("");
     setScreenshot(null);
@@ -124,19 +129,25 @@ export default function Home() {
   };
 
   const removeItem = async (id) => {
-    try {
-      await supabase.from("items").delete().eq("id", id);
-      setItems(items.filter((item) => item.id !== id));
-    } catch (e) {
-      console.log("Delete error:", e);
+    if (supabase) {
+      try {
+        await supabase.from("items").delete().eq("id", id);
+      } catch (e) {
+        console.log("Delete error:", e);
+      }
     }
+    setItems(items.filter((item) => item.id !== id));
   };
 
-  const startNew = async () => {
+  const startNew = () => {
     localStorage.removeItem("qa_report_id");
     setItems([]);
-    setReportId(null);
-    loadOrCreateReport();
+    const newId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+    setReportId(newId);
+    localStorage.setItem("qa_report_id", newId);
+    if (supabase) {
+      supabase.from("reports").insert({ id: newId, title: "Test Report" });
+    }
   };
 
   const getShareUrl = () => {
