@@ -10,8 +10,9 @@ export default function Home() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("bug");
   const [priority, setPriority] = useState("medium");
-  const [screenshot, setScreenshot] = useState(null);
-  const [screenshotFile, setScreenshotFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
   const [view, setView] = useState("capture");
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,10 +66,12 @@ export default function Home() {
   };
 
   const handleFile = (file) => {
-    if (file && file.type.startsWith("image/")) {
-      setScreenshotFile(file);
+    if (!file) return;
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+      setMediaFile(file);
+      setMediaType(file.type.startsWith("video/") ? "video" : "image");
       const reader = new FileReader();
-      reader.onload = (e) => setScreenshot(e.target.result);
+      reader.onload = (e) => setMediaPreview(e.target.result);
       reader.readAsDataURL(file);
     }
   };
@@ -76,17 +79,18 @@ export default function Home() {
   const handlePaste = (e) => {
     const clipItems = e.clipboardData.items;
     for (let i = 0; i < clipItems.length; i++) {
-      if (clipItems[i].type.startsWith("image/")) {
+      if (clipItems[i].type.startsWith("image/") || clipItems[i].type.startsWith("video/")) {
         handleFile(clipItems[i].getAsFile());
         break;
       }
     }
   };
 
-  const uploadScreenshot = async (file) => {
+  const uploadMedia = async (file) => {
     if (!supabase) return null;
     try {
-      const fileName = Date.now() + "-" + Math.random().toString(36).substring(2, 8) + ".png";
+      const ext = file.name?.split(".").pop() || (file.type.startsWith("video/") ? "mp4" : "png");
+      const fileName = Date.now() + "-" + Math.random().toString(36).substring(2, 8) + "." + ext;
       await supabase.storage.from("screenshots").upload(fileName, file);
       const { data } = supabase.storage.from("screenshots").getPublicUrl(fileName);
       return data.publicUrl;
@@ -100,10 +104,10 @@ export default function Home() {
     if (!title.trim()) return;
     setSaving(true);
 
-    let imageUrl = screenshot;
-    if (screenshotFile && supabase) {
-      const url = await uploadScreenshot(screenshotFile);
-      if (url) imageUrl = url;
+    let mediaUrl = mediaPreview;
+    if (mediaFile && supabase) {
+      const url = await uploadMedia(mediaFile);
+      if (url) mediaUrl = url;
     }
 
     const newItem = {
@@ -113,7 +117,8 @@ export default function Home() {
       description: description,
       category: category,
       priority: priority,
-      screenshot_url: imageUrl,
+      screenshot_url: mediaUrl,
+      media_type: mediaType || "image",
       status: "todo",
       assignee: null,
       created_at: new Date().toISOString()
@@ -131,8 +136,9 @@ export default function Home() {
     setItems([...items, newItem]);
     setTitle("");
     setDescription("");
-    setScreenshot(null);
-    setScreenshotFile(null);
+    setMediaPreview(null);
+    setMediaFile(null);
+    setMediaType(null);
     setSaving(false);
   };
 
@@ -254,15 +260,17 @@ export default function Home() {
               <h2 style={{ marginTop: 0, fontSize: "20px", color: "#1e293b", fontWeight: "700" }}>📝 Add New Item</h2>
               
               <div onClick={() => fileRef.current.click()} onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }} onDragOver={(e) => e.preventDefault()} style={{ border: "2px dashed #cbd5e1", borderRadius: "16px", padding: "28px", textAlign: "center", cursor: "pointer", marginBottom: "20px", background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" }}>
-                {screenshot ? (
-                  <img src={screenshot} style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} alt="screenshot" />
+                {mediaPreview && mediaType === "video" ? (
+                  <video src={mediaPreview} controls style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                ) : mediaPreview ? (
+                  <img src={mediaPreview} style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} alt="screenshot" />
                 ) : (
                   <div>
                     <div style={{ fontSize: "48px", marginBottom: "12px" }}>📷</div>
-                    <p style={{ margin: 0, color: "#64748b", fontSize: "15px", fontWeight: "500" }}>Drop, paste (Ctrl+V), or click</p>
+                    <p style={{ margin: 0, color: "#64748b", fontSize: "15px", fontWeight: "500" }}>Drop, paste (Ctrl+V), or click to add image/video</p>
                   </div>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" onChange={(e) => handleFile(e.target.files[0])} style={{ display: "none" }} />
+                <input ref={fileRef} type="file" accept="image/*,video/*" onChange={(e) => handleFile(e.target.files[0])} style={{ display: "none" }} />
               </div>
 
               <input type="text" placeholder="Issue title..." value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", border: "2px solid #e2e8f0", fontSize: "15px", marginBottom: "14px", boxSizing: "border-box" }} />
@@ -309,7 +317,7 @@ export default function Home() {
                       </div>
                       <h4 style={{ margin: "10px 0 6px", fontSize: "15px", color: "#1e293b", fontWeight: "600" }}>{item.title}</h4>
                       <span style={{ color: pri.color, fontSize: "12px", fontWeight: "600" }}>● {pri.label}</span>
-                      {item.screenshot_url && <img src={item.screenshot_url} style={{ display: "block", maxWidth: "100%", maxHeight: "80px", borderRadius: "8px", marginTop: "10px" }} alt="" />}
+                      {item.screenshot_url && (item.media_type === "video" ? <video src={item.screenshot_url} controls style={{ display: "block", maxWidth: "100%", maxHeight: "80px", borderRadius: "8px", marginTop: "10px" }} /> : <img src={item.screenshot_url} style={{ display: "block", maxWidth: "100%", maxHeight: "80px", borderRadius: "8px", marginTop: "10px" }} alt="" />)}
                     </div>
                   );
                 })
@@ -354,7 +362,7 @@ export default function Home() {
                       </div>
                       <span style={{ background: cat.bg, color: cat.color, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>{cat.emoji} {cat.label}</span>
                       {item.description && <p style={{ margin: "14px 0", fontSize: "14px", color: "#475569", lineHeight: "1.6" }}>{item.description}</p>}
-                      {item.screenshot_url && <img src={item.screenshot_url} style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", marginTop: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} alt="" />}
+                      {item.screenshot_url && (item.media_type === "video" ? <video src={item.screenshot_url} controls style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", marginTop: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} /> : <img src={item.screenshot_url} style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", marginTop: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} alt="" />)}
                       {item.created_at && <div style={{ marginTop: "14px", fontSize: "12px", color: "#94a3b8" }}>🕐 {new Date(item.created_at).toLocaleString()}</div>}
                     </div>
                   );
