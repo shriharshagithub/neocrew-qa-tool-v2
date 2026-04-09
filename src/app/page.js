@@ -39,16 +39,25 @@ export default function Home() {
   }, []);
 
   const loadOrCreateReport = async () => {
-    if (!supabase) return;
+    console.log("[loadOrCreateReport] supabase client:", supabase !== null);
+    if (!supabase) {
+      console.log("[loadOrCreateReport] No supabase client - skipping");
+      return;
+    }
     try {
       const stored = localStorage.getItem("qa_report_id");
+      console.log("[loadOrCreateReport] Stored report ID:", stored);
       if (stored) {
         setReportId(stored);
-        const { data } = await supabase.from("items").select("*").eq("report_id", stored).order("created_at", { ascending: true });
+        const { data, error } = await supabase.from("items").select("*").eq("report_id", stored).order("created_at", { ascending: true });
+        console.log("[loadOrCreateReport] Fetched items:", { data, error });
+        if (error) console.error("[loadOrCreateReport] Error fetching items:", error);
         if (data) setItems(data);
       } else {
         const newId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-        await supabase.from("reports").insert({ id: newId, title: "Test Report" });
+        const { data, error } = await supabase.from("reports").insert({ id: newId, title: "Test Report" });
+        console.log("[loadOrCreateReport] Created report:", { id: newId, data, error });
+        if (error) console.error("[loadOrCreateReport] Error creating report:", error);
         localStorage.setItem("qa_report_id", newId);
         setReportId(newId);
       }
@@ -80,8 +89,12 @@ export default function Home() {
     if (!supabase) return null;
     try {
       const fileName = Date.now() + "-" + Math.random().toString(36).substring(2, 8) + ".png";
-      await supabase.storage.from("screenshots").upload(fileName, file);
+      console.log("[uploadScreenshot] Uploading:", fileName);
+      const { data: uploadData, error: uploadError } = await supabase.storage.from("screenshots").upload(fileName, file);
+      console.log("[uploadScreenshot] Upload result:", { uploadData, uploadError });
+      if (uploadError) console.error("[uploadScreenshot] Upload error:", uploadError);
       const { data } = supabase.storage.from("screenshots").getPublicUrl(fileName);
+      console.log("[uploadScreenshot] Public URL:", data.publicUrl);
       return data.publicUrl;
     } catch (e) {
       console.log("Upload error:", e);
@@ -114,10 +127,15 @@ export default function Home() {
 
     if (supabase && reportId) {
       try {
-        await supabase.from("items").insert(newItem);
+        console.log("[addItem] Inserting item:", newItem);
+        const { data, error } = await supabase.from("items").insert(newItem);
+        console.log("[addItem] Insert result:", { data, error });
+        if (error) console.error("[addItem] Insert error:", error);
       } catch (e) {
         console.log("Insert error:", e);
       }
+    } else {
+      console.log("[addItem] Skipped insert - supabase:", !!supabase, "reportId:", reportId);
     }
 
     setItems([...items, newItem]);
@@ -131,7 +149,10 @@ export default function Home() {
   const removeItem = async (id) => {
     if (supabase) {
       try {
-        await supabase.from("items").delete().eq("id", id);
+        console.log("[removeItem] Deleting item:", id);
+        const { data, error } = await supabase.from("items").delete().eq("id", id);
+        console.log("[removeItem] Delete result:", { data, error });
+        if (error) console.error("[removeItem] Delete error:", error);
       } catch (e) {
         console.log("Delete error:", e);
       }
