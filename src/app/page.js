@@ -10,6 +10,8 @@ export default function Home() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("bug");
   const [priority, setPriority] = useState("medium");
+  const [raisedBy, setRaisedBy] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
   const [mediaPreview, setMediaPreview] = useState(null);
   const [mediaFile, setMediaFile] = useState(null);
   const [mediaType, setMediaType] = useState(null);
@@ -34,8 +36,17 @@ export default function Home() {
     { id: "low", label: "Low", color: "#65a30d" }
   ];
 
+  const teamMembers = ["Shri", "Roshit", "Jhilik", "Ananya", "Ritesh", "Harsha"];
+
+  const statuses = [
+    { id: "todo", label: "Todo", color: "#64748b", bg: "#f1f5f9" },
+    { id: "in_progress", label: "In Progress", color: "#f59e0b", bg: "#fffbeb" },
+    { id: "done", label: "Done", color: "#10b981", bg: "#f0fdf4" }
+  ];
+
   const getCat = (id) => categories.find((c) => c.id === id) || categories[0];
   const getPri = (id) => priorities.find((p) => p.id === id) || priorities[2];
+  const getStatus = (id) => statuses.find((s) => s.id === id) || statuses[0];
 
   useEffect(() => {
     loadOrCreateReport();
@@ -120,7 +131,8 @@ export default function Home() {
       screenshot_url: mediaUrl,
       media_type: mediaType || "image",
       status: "todo",
-      assignee: null,
+      raised_by: raisedBy || null,
+      assignee: assignedTo || null,
       created_at: new Date().toISOString()
     };
 
@@ -139,6 +151,8 @@ export default function Home() {
     setMediaPreview(null);
     setMediaFile(null);
     setMediaType(null);
+    setRaisedBy("");
+    setAssignedTo("");
     setSaving(false);
   };
 
@@ -151,6 +165,13 @@ export default function Home() {
       }
     }
     setItems(items.filter((item) => item.id !== id));
+  };
+
+  const updateItemStatus = async (id, newStatus) => {
+    if (supabase) {
+      await supabase.from("items").update({ status: newStatus }).eq("id", id);
+    }
+    setItems(items.map((item) => item.id === id ? { ...item, status: newStatus } : item));
   };
 
   const startNew = () => {
@@ -295,6 +316,19 @@ export default function Home() {
                 </div>
               </div>
 
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "20px" }}>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: "#475569", marginBottom: "8px" }}>RAISED BY</div>
+                  <input list="team-raised" type="text" placeholder="Select or type name..." value={raisedBy} onChange={(e) => setRaisedBy(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: "2px solid #e2e8f0", fontSize: "14px", boxSizing: "border-box" }} />
+                  <datalist id="team-raised">{teamMembers.map((m) => <option key={m} value={m} />)}</datalist>
+                </div>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: "#475569", marginBottom: "8px" }}>ASSIGNED TO</div>
+                  <input list="team-assigned" type="text" placeholder="Select or type name..." value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: "2px solid #e2e8f0", fontSize: "14px", boxSizing: "border-box" }} />
+                  <datalist id="team-assigned">{teamMembers.map((m) => <option key={m} value={m} />)}</datalist>
+                </div>
+              </div>
+
               <button onClick={addItem} disabled={!title.trim() || saving} style={{ width: "100%", padding: "16px", borderRadius: "12px", border: "none", background: title.trim() && !saving ? "#3b82f6" : "#e2e8f0", color: title.trim() && !saving ? "white" : "#94a3b8", fontWeight: "700", fontSize: "16px", cursor: title.trim() && !saving ? "pointer" : "not-allowed" }}>{saving ? "⏳ Saving..." : "➕ Add to Report"}</button>
             </div>
 
@@ -316,7 +350,11 @@ export default function Home() {
                         <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "18px" }}>✕</button>
                       </div>
                       <h4 style={{ margin: "10px 0 6px", fontSize: "15px", color: "#1e293b", fontWeight: "600" }}>{item.title}</h4>
-                      <span style={{ color: pri.color, fontSize: "12px", fontWeight: "600" }}>● {pri.label}</span>
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ color: pri.color, fontSize: "12px", fontWeight: "600" }}>● {pri.label}</span>
+                        {(() => { const st = getStatus(item.status); return <span style={{ background: st.bg, color: st.color, padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600" }}>{st.label}</span>; })()}
+                      </div>
+                      {(item.raised_by || item.assignee) && <div style={{ marginTop: "6px", fontSize: "11px", color: "#94a3b8" }}>{item.raised_by && <>By: {item.raised_by}</>}{item.raised_by && item.assignee && " | "}{item.assignee && <>To: {item.assignee}</>}</div>}
                       {item.screenshot_url && (item.media_type === "video" ? <video src={item.screenshot_url} controls style={{ display: "block", maxWidth: "100%", maxHeight: "80px", borderRadius: "8px", marginTop: "10px" }} /> : <img src={item.screenshot_url} style={{ display: "block", maxWidth: "100%", maxHeight: "80px", borderRadius: "8px", marginTop: "10px" }} alt="" />)}
                     </div>
                   );
@@ -360,7 +398,19 @@ export default function Home() {
                         <h4 style={{ margin: 0, fontSize: "18px", color: "#1e293b", fontWeight: "600" }}>{idx + 1}. {item.title}</h4>
                         <span style={{ background: pri.color, color: "white", padding: "4px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>{pri.label}</span>
                       </div>
-                      <span style={{ background: cat.bg, color: cat.color, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>{cat.emoji} {cat.label}</span>
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ background: cat.bg, color: cat.color, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>{cat.emoji} {cat.label}</span>
+                        {statuses.map((st) => {
+                          const active = (item.status || "todo") === st.id;
+                          return <button key={st.id} onClick={() => updateItemStatus(item.id, st.id)} style={{ padding: "4px 12px", borderRadius: "6px", border: active ? "2px solid " + st.color : "1px solid #e2e8f0", background: active ? st.bg : "white", color: active ? st.color : "#94a3b8", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>{st.label}</button>;
+                        })}
+                      </div>
+                      {(item.raised_by || item.assignee) && (
+                        <div style={{ display: "flex", gap: "16px", marginTop: "12px", fontSize: "13px" }}>
+                          {item.raised_by && <span style={{ color: "#64748b" }}>Raised by: <strong style={{ color: "#1e293b" }}>{item.raised_by}</strong></span>}
+                          {item.assignee && <span style={{ color: "#64748b" }}>Assigned to: <strong style={{ color: "#1e293b" }}>{item.assignee}</strong></span>}
+                        </div>
+                      )}
                       {item.description && <p style={{ margin: "14px 0", fontSize: "14px", color: "#475569", lineHeight: "1.6" }}>{item.description}</p>}
                       {item.screenshot_url && (item.media_type === "video" ? <video src={item.screenshot_url} controls style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", marginTop: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} /> : <img src={item.screenshot_url} style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "12px", marginTop: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} alt="" />)}
                       {item.created_at && <div style={{ marginTop: "14px", fontSize: "12px", color: "#94a3b8" }}>🕐 {new Date(item.created_at).toLocaleString()}</div>}
