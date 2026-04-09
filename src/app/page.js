@@ -48,6 +48,16 @@ export default function Home() {
       const stored = localStorage.getItem("qa_report_id");
       console.log("[loadOrCreateReport] Stored report ID:", stored);
       if (stored) {
+        // Verify the report exists in Supabase
+        const { data: reportData, error: reportError } = await supabase.from("reports").select("id").eq("id", stored).single();
+        console.log("[loadOrCreateReport] Report lookup:", { reportData, reportError });
+
+        if (reportError || !reportData) {
+          // Report doesn't exist in Supabase — recreate it
+          console.log("[loadOrCreateReport] Report not found, recreating...");
+          await supabase.from("reports").upsert({ id: stored, title: "Test Report" }, { onConflict: "id" });
+        }
+
         setReportId(stored);
         const { data, error } = await supabase.from("items").select("*").eq("report_id", stored).order("created_at", { ascending: true });
         console.log("[loadOrCreateReport] Fetched items:", { data, error });
@@ -55,9 +65,12 @@ export default function Home() {
         if (data) setItems(data);
       } else {
         const newId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-        const { data, error } = await supabase.from("reports").insert({ id: newId, title: "Test Report" });
+        const { data, error } = await supabase.from("reports").upsert({ id: newId, title: "Test Report" }, { onConflict: "id" });
         console.log("[loadOrCreateReport] Created report:", { id: newId, data, error });
-        if (error) console.error("[loadOrCreateReport] Error creating report:", error);
+        if (error) {
+          console.error("[loadOrCreateReport] Error creating report:", error);
+          return;
+        }
         localStorage.setItem("qa_report_id", newId);
         setReportId(newId);
       }
@@ -127,6 +140,11 @@ export default function Home() {
 
     if (supabase && reportId) {
       try {
+        // Ensure report exists before inserting item
+        const { error: reportError } = await supabase.from("reports").upsert({ id: reportId, title: "Test Report" }, { onConflict: "id" });
+        console.log("[addItem] Ensured report exists:", { reportId, reportError });
+        if (reportError) console.error("[addItem] Report upsert error:", reportError);
+
         console.log("[addItem] Inserting item:", newItem);
         const { data, error } = await supabase.from("items").insert(newItem);
         console.log("[addItem] Insert result:", { data, error });
@@ -167,7 +185,9 @@ export default function Home() {
     setReportId(newId);
     localStorage.setItem("qa_report_id", newId);
     if (supabase) {
-      supabase.from("reports").insert({ id: newId, title: "Test Report" });
+      supabase.from("reports").upsert({ id: newId, title: "Test Report" }, { onConflict: "id" }).then(({ error }) => {
+        if (error) console.error("[startNew] Error creating report:", error);
+      });
     }
   };
 
