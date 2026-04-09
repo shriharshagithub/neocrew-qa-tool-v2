@@ -179,7 +179,7 @@ export default function Home() {
     setReportId(id);
     const { data } = await supabase.from("items").select("*").eq("report_id", id).order("created_at", { ascending: true });
     if (data) setItems(data);
-    setView("capture");
+    setView("report");
   };
 
   const getShareUrl = () => {
