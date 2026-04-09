@@ -15,6 +15,8 @@ export default function Home() {
   const [view, setView] = useState("capture");
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
   const fileRef = useRef(null);
 
   const categories = [
@@ -146,6 +148,7 @@ export default function Home() {
   };
 
   const startNew = () => {
+    if (!confirm("Start a new report? Your current report is saved and you can access it later.")) return;
     localStorage.removeItem("qa_report_id");
     setItems([]);
     const newId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
@@ -156,6 +159,27 @@ export default function Home() {
         if (error) console.error("[startNew] Error creating report:", error);
       });
     }
+  };
+
+  const loadReports = async () => {
+    if (!supabase) return;
+    setLoadingReports(true);
+    try {
+      const { data } = await supabase.from("reports").select("id, title, created_at, items(count)").order("created_at", { ascending: false });
+      if (data) setReports(data);
+    } catch (e) {
+      console.error("Load reports error:", e);
+    }
+    setLoadingReports(false);
+  };
+
+  const loadReport = async (id) => {
+    if (!supabase) return;
+    localStorage.setItem("qa_report_id", id);
+    setReportId(id);
+    const { data } = await supabase.from("items").select("*").eq("report_id", id).order("created_at", { ascending: true });
+    if (data) setItems(data);
+    setView("capture");
   };
 
   const getShareUrl = () => {
@@ -183,11 +207,48 @@ export default function Home() {
           <div style={{ display: "flex", gap: "8px" }}>
             <button onClick={() => setView("capture")} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: view === "capture" ? "#3b82f6" : "white", color: view === "capture" ? "white" : "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>📸 Capture</button>
             <button onClick={() => setView("report")} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: view === "report" ? "#3b82f6" : "white", color: view === "report" ? "white" : "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>📋 Report ({items.length})</button>
+            <button onClick={() => { setView("reports"); loadReports(); }} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: view === "reports" ? "#3b82f6" : "white", color: view === "reports" ? "white" : "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>📂 My Reports</button>
             <button onClick={startNew} style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: "white", color: "#475569", fontWeight: "600", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" }}>✨ New</button>
           </div>
         </div>
 
-        {view === "capture" ? (
+        {view === "reports" ? (
+          <div style={{ background: "white", borderRadius: "20px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
+            <h2 style={{ marginTop: 0, fontSize: "24px", color: "#1e293b", fontWeight: "700" }}>📂 My Reports</h2>
+            {loadingReports ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>
+                <p style={{ fontSize: "16px", fontWeight: "500" }}>Loading reports...</p>
+              </div>
+            ) : reports.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px", color: "#94a3b8" }}>
+                <div style={{ fontSize: "56px", marginBottom: "16px" }}>📭</div>
+                <p style={{ fontSize: "18px", fontWeight: "500" }}>No reports yet</p>
+              </div>
+            ) : (
+              reports.map((report) => {
+                const itemCount = report.items?.[0]?.count || 0;
+                const isActive = report.id === reportId;
+                return (
+                  <div key={report.id} onClick={() => loadReport(report.id)} style={{ border: isActive ? "2px solid #3b82f6" : "1px solid #e2e8f0", borderRadius: "14px", padding: "20px", marginBottom: "12px", cursor: "pointer", background: isActive ? "#eff6ff" : "#fafafa", transition: "all 0.15s" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <h4 style={{ margin: "0 0 6px", fontSize: "16px", color: "#1e293b", fontWeight: "600" }}>{report.title || "Test Report"}</h4>
+                        <div style={{ display: "flex", gap: "16px", fontSize: "13px", color: "#64748b" }}>
+                          <span>ID: {report.id}</span>
+                          <span>🕐 {new Date(report.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <span style={{ background: "#f1f5f9", padding: "6px 14px", borderRadius: "8px", fontSize: "14px", fontWeight: "600", color: "#475569" }}>{itemCount} item{itemCount !== 1 ? "s" : ""}</span>
+                        {isActive && <span style={{ background: "#3b82f6", color: "white", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>Current</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : view === "capture" ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
             <div style={{ background: "white", borderRadius: "20px", padding: "28px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
               <h2 style={{ marginTop: 0, fontSize: "20px", color: "#1e293b", fontWeight: "700" }}>📝 Add New Item</h2>
