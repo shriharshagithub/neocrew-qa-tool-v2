@@ -184,10 +184,37 @@ export default function Home() {
   };
 
   // ── media ──
+  // Limits: images 10 MB, videos 50 MB (Supabase free tier cap is 50 MB per file)
+  const FILE_LIMITS = { image: 10 * 1024 * 1024, video: 50 * 1024 * 1024 };
+
+  // Compress images to JPEG before upload to keep DB + storage lean
+  const compressImage = (file) => new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 1600;
+      let { width: w, height: h } = img;
+      if (w > MAX || h > MAX) { const r = Math.min(MAX / w, MAX / h); w = Math.round(w * r); h = Math.round(h * r); }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob || file), "image/jpeg", 0.82);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+
   const handleFile = (file) => {
     if (!file || (!file.type.startsWith("image/") && !file.type.startsWith("video/"))) return;
+    const isVideo = file.type.startsWith("video/");
+    const limit   = isVideo ? FILE_LIMITS.video : FILE_LIMITS.image;
+    if (file.size > limit) {
+      alert(`File too large. Max ${isVideo ? "50 MB for videos" : "10 MB for images"} (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+      return;
+    }
     setMediaFile(file);
-    setMediaType(file.type.startsWith("video/") ? "video" : "image");
+    setMediaType(isVideo ? "video" : "image");
     const r = new FileReader();
     r.onload = e => setMediaPreview(e.target.result);
     r.readAsDataURL(file);
@@ -197,17 +224,19 @@ export default function Home() {
       if (it.type.startsWith("image/") || it.type.startsWith("video/")) { handleFile(it.getAsFile()); break; }
     }
   };
-  const uploadMedia = async (file, dataUrl) => {
-    if (!supabase) return dataUrl || null;
-    const ext = file.name?.split(".").pop() || (file.type.startsWith("video/") ? "mp4" : "png");
+  const uploadMedia = async (file, isVideo) => {
+    if (!supabase) return null;
+    const toUpload = isVideo ? file : await compressImage(file);
+    const ext  = isVideo ? (file.name?.split(".").pop() || "mp4") : "jpg";
     const name = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-    const { error } = await supabase.storage.from("screenshots").upload(name, file);
+    const { error } = await supabase.storage.from("screenshots").upload(name, toUpload, {
+      contentType: isVideo ? file.type : "image/jpeg",
+    });
     if (error) {
-      console.warn("Storage upload failed, using local data URL:", error.message);
-      return dataUrl || null;
+      console.error("Storage upload failed:", error.message);
+      return null; // never fall back to data URL — avoids bloating the DB
     }
-    const { data } = supabase.storage.from("screenshots").getPublicUrl(name);
-    return data.publicUrl;
+    return supabase.storage.from("screenshots").getPublicUrl(name).data.publicUrl;
   };
 
   // ── add ──
@@ -216,8 +245,14 @@ export default function Home() {
   const addItem = async () => {
     if (!canSubmit || saving) return;
     setSaving(true);
-    let mediaUrl = mediaPreview || null;
-    if (mediaFile) { mediaUrl = await uploadMedia(mediaFile, mediaPreview); }
+    let mediaUrl = null;
+    if (mediaFile) {
+      const isVideo = mediaType === "video";
+      mediaUrl = await uploadMedia(mediaFile, isVideo);
+      if (mediaFile && !mediaUrl) {
+        if (!confirm("Attachment upload failed — add the issue without it?")) { setSaving(false); return; }
+      }
+    }
     const item = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
       report_id: reportId, title: title.trim(), description: desc.trim(),
