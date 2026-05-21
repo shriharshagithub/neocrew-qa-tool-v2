@@ -25,6 +25,14 @@ const STATS = [
 ];
 
 const getCat = (id) => CATS.find(c => c.id === id) || CATS[0];
+
+const fmtStamp = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    + " · "
+    + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+};
 const getPri = (id) => PRIS[id] || PRIS.medium;
 
 function PriDot({ priority }) {
@@ -158,8 +166,15 @@ export default function SharedReport() {
 
                   {/* Description */}
                   {item.description && (
-                    <p className="text-xs text-ink-subtle leading-relaxed mb-2.5 ml-[18px]">
+                    <p className="text-xs text-ink-subtle leading-relaxed mb-1.5 ml-[18px]">
                       {item.description}
+                    </p>
+                  )}
+
+                  {/* Raised at */}
+                  {item.created_at && (
+                    <p className="text-xs text-ink-tertiary mb-2.5 ml-[18px] tabular">
+                      {fmtStamp(item.created_at)}
                     </p>
                   )}
 

@@ -39,6 +39,14 @@ const todayTitle = () => {
 };
 const firstName  = (u) => (u?.user_metadata?.full_name || u?.user_metadata?.name || "").split(" ")[0] || u?.email?.split("@")[0] || "You";
 
+const fmtStamp = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    + " · "
+    + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+};
+
 // ── Priority dot ──────────────────────────────────────────────────────────────
 function PriDot({ id }) {
   const p = getPri(id);
@@ -101,6 +109,13 @@ function IssueRow({ item, idx, onRemove, onStatus, showStatus }) {
         </p>
       )}
 
+      {/* Timestamp */}
+      {item.created_at && (
+        <p className="text-xs text-ink-tertiary mt-1 ml-[18px] tabular">
+          {fmtStamp(item.created_at)}
+        </p>
+      )}
+
       {/* Attachment */}
       {item.screenshot_url && (
         <div className="mt-2 ml-[18px]">
@@ -131,7 +146,6 @@ export default function Home() {
   const [items, setItems]           = useState([]);
   const [reportId, setReportId]     = useState(null);
   const [reportTitle, setReportTitle] = useState(todayTitle());
-  const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle]           = useState("");
   const [desc, setDesc]             = useState("");
   const [cat, setCat]               = useState("bug");
@@ -147,7 +161,6 @@ export default function Home() {
   const [copied, setCopied]         = useState(false);
   const [saving, setSaving]         = useState(false);
   const [added, setAdded]           = useState(false);
-  const [savingTitle, setSavingTitle] = useState(false);
   const [reports, setReports]       = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
   const fileRef = useRef(null);
@@ -185,13 +198,6 @@ export default function Home() {
     await supabase.from("reports").upsert({ id, title: t }, { onConflict: "id" });
     localStorage.setItem("qa_report_id", id);
     setReportId(id); setReportTitle(t);
-  };
-
-  const saveTitle = async () => {
-    if (!reportTitle.trim() || !supabase || !reportId) { setEditingTitle(false); return; }
-    setSavingTitle(true);
-    await supabase.from("reports").update({ title: reportTitle.trim() }).eq("id", reportId);
-    setSavingTitle(false); setEditingTitle(false);
   };
 
   // ── media ──
@@ -347,29 +353,8 @@ export default function Home() {
 
         <span className="text-hairline-strong flex-shrink-0">/</span>
 
-        {/* Session title */}
-        {editingTitle ? (
-          <div className="flex items-center gap-2 min-w-0">
-            <input
-              autoFocus
-              value={reportTitle}
-              onChange={e => setReportTitle(e.target.value)}
-              onBlur={saveTitle}
-              onKeyDown={e => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") setEditingTitle(false); }}
-              className="text-sm text-ink bg-transparent border-b border-lavender outline-none px-0.5 w-44"
-            />
-            <button onClick={saveTitle} className="text-xs text-lavender bg-transparent border-none cursor-pointer font-medium">
-              {savingTitle ? "…" : "Save"}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setEditingTitle(true)}
-            className="text-sm text-ink-subtle hover:text-ink bg-transparent border-none cursor-pointer truncate max-w-xs flex items-center gap-1.5 group"
-          >
-            <span className="truncate">{reportTitle}</span>
-          </button>
-        )}
+        {/* Session title — read-only timestamp */}
+        <span className="text-sm text-ink-subtle truncate max-w-xs">{reportTitle}</span>
 
         {/* Spacer */}
         <div className="flex-1" />
