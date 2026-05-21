@@ -63,60 +63,47 @@ function CatBadge({ id }) {
   );
 }
 
-// ── Issue row (right panel + report) ─────────────────────────────────────────
-function IssueRow({ item, idx, onRemove, onStatus, showStatus }) {
+// ── Issue row ─────────────────────────────────────────────────────────────────
+function IssueRow({ item, onRemove, onStatus, showStatus }) {
   const isDone = item.status === "done";
-  const hasExtra = item.description || item.screenshot_url;
+  const stat   = getStat(item.status || "todo");
   return (
-    <div className={`group slide-in border-b border-hairline last:border-b-0 px-4 py-3 hover:bg-s1 transition-colors duration-75 ${isDone ? "done-row" : ""}`}>
-      {/* Top row */}
-      <div className="flex items-center gap-2.5 min-w-0">
+    <div className={`group slide-in border-b border-hairline last:border-b-0 px-4 py-3 hover:bg-s1/60 transition-colors duration-75 ${isDone ? "done-row" : ""}`}>
+
+      {/* ── Main row: dot · title · [right metadata] ── */}
+      <div className="flex items-start gap-2.5 min-w-0">
         <PriDot id={item.priority} />
-        <span className={`row-title flex-1 text-sm min-w-0 ${hasExtra ? "" : "truncate"} ${isDone ? "text-ink-subtle" : "text-ink"}`}>
+
+        {/* Title */}
+        <span className={`row-title flex-1 text-sm leading-snug min-w-0 ${isDone ? "line-through text-ink-subtle" : "text-ink"}`}>
           {item.title}
         </span>
-        <CatBadge id={item.category} />
-        {item.raised_by && (
-          <span className="hidden sm:block text-xs text-ink-tertiary flex-shrink-0">{item.raised_by}</span>
-        )}
-        {showStatus ? (
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {STATS.map(s => (
-              <button
-                key={s.id}
-                onClick={() => onStatus(item.id, s.id)}
-                className="l-chip text-xs"
-                style={
-                  (item.status || "todo") === s.id
-                    ? { color: s.color, background: s.activeBg, borderColor: `${s.color}40` }
-                    : { color: "#62666d", background: "transparent", borderColor: "#23252a" }
-                }
-              >{s.label}</button>
-            ))}
-          </div>
-        ) : (
-          <button
-            onClick={() => onRemove(item.id)}
-            className="opacity-0 group-hover:opacity-100 text-ink-tertiary hover:text-tag-red text-xs bg-transparent border-none cursor-pointer transition-all ml-1 flex-shrink-0"
-          >✕</button>
-        )}
+
+        {/* Right metadata cluster */}
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          {item.created_at && (
+            <span className="hidden sm:block text-xs text-ink-tertiary tabular whitespace-nowrap">
+              {fmtStamp(item.created_at)}
+            </span>
+          )}
+          <CatBadge id={item.category} />
+          {!showStatus && (
+            <button
+              onClick={() => onRemove(item.id)}
+              className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center text-ink-tertiary hover:text-tag-red text-xs bg-transparent border-none cursor-pointer transition-all rounded"
+            >✕</button>
+          )}
+        </div>
       </div>
 
-      {/* Description */}
+      {/* ── Description ── */}
       {item.description && (
         <p className="text-xs text-ink-subtle mt-1.5 ml-[18px] leading-relaxed">
           {item.description}
         </p>
       )}
 
-      {/* Timestamp */}
-      {item.created_at && (
-        <p className="text-xs text-ink-tertiary mt-1 ml-[18px] tabular">
-          {fmtStamp(item.created_at)}
-        </p>
-      )}
-
-      {/* Attachment */}
+      {/* ── Attachment ── */}
       {item.screenshot_url && (
         <div className="mt-2 ml-[18px]">
           {item.media_type === "video"
@@ -125,13 +112,37 @@ function IssueRow({ item, idx, onRemove, onStatus, showStatus }) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                 Watch on Loom
               </a>
-            : <img
-                src={item.screenshot_url}
-                className="rounded-lg max-h-48 border border-hairline object-contain cursor-pointer"
-                alt=""
-                onClick={() => window.open(item.screenshot_url, "_blank")}
-              />
+            : <img src={item.screenshot_url} className="rounded-lg max-h-48 border border-hairline object-contain cursor-pointer" alt=""
+                onClick={() => window.open(item.screenshot_url, "_blank")} />
           }
+        </div>
+      )}
+
+      {/* ── Footer: raised by · assignee · status chips ── */}
+      {(item.raised_by || item.assignee || showStatus) && (
+        <div className="flex items-center gap-3 mt-2 ml-[18px] flex-wrap">
+          {item.raised_by && (
+            <span className="text-xs text-ink-tertiary">
+              ↑ {item.raised_by}
+            </span>
+          )}
+          {item.assignee && (
+            <span className="text-xs text-ink-tertiary">
+              → {item.assignee}
+            </span>
+          )}
+          {showStatus && (
+            <div className="flex items-center gap-1 ml-auto">
+              {STATS.map(s => (
+                <button key={s.id} onClick={() => onStatus(item.id, s.id)}
+                  className="l-chip text-xs"
+                  style={(item.status || "todo") === s.id
+                    ? { color: s.color, background: s.activeBg, borderColor: `${s.color}40` }
+                    : { color: "#62666d", background: "transparent", borderColor: "#23252a" }
+                  }>{s.label}</button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -429,7 +440,7 @@ export default function Home() {
 
             {/* ── Form ── */}
             <div className="l-card p-5 self-start">
-              <h2 className="text-sm font-semibold text-ink mb-4 tracking-tight">New issue</h2>
+              <h2 className="text-sm font-semibold text-ink mb-4 tracking-tight">Log an issue</h2>
 
               {/* Media zone */}
               <div
@@ -471,7 +482,7 @@ export default function Home() {
 
               {/* Category */}
               <div className="mb-3">
-                <p className="text-xs text-ink-tertiary font-medium uppercase tracking-wider mb-2">Type</p>
+                <p className="text-xs text-ink-tertiary font-medium mb-2">Type</p>
                 <div className="flex flex-wrap gap-1.5">
                   {CATS.map(c => (
                     <button key={c.id} onClick={() => setCat(c.id)}
@@ -488,7 +499,7 @@ export default function Home() {
 
               {/* Priority */}
               <div className="mb-4">
-                <p className="text-xs text-ink-tertiary font-medium uppercase tracking-wider mb-2">Priority</p>
+                <p className="text-xs text-ink-tertiary font-medium mb-2">Priority</p>
                 <div className="flex gap-1.5">
                   {PRIS.map(p => (
                     <button key={p.id} onClick={() => setPri(p.id)}

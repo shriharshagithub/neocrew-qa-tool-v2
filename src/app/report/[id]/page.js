@@ -155,26 +155,26 @@ export default function SharedReport() {
                   key={item.id}
                   className={`border-b border-hairline last:border-b-0 px-4 py-3.5 transition-opacity slide-in ${isDone ? "done-row" : ""}`}
                 >
-                  {/* Row top: dot + title + cat badge */}
-                  <div className="flex items-start gap-2.5 mb-2.5">
+                  {/* Row top: dot · title · [timestamp + badge right] */}
+                  <div className="flex items-start gap-2.5 mb-2">
                     <PriDot priority={item.priority} />
                     <span className={`text-sm font-medium leading-snug flex-1 row-title ${isDone ? "line-through text-ink-subtle" : "text-ink"}`}>
                       {item.title}
                     </span>
-                    <CatBadge category={item.category} />
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      {item.created_at && (
+                        <span className="hidden sm:block text-xs text-ink-tertiary tabular whitespace-nowrap">
+                          {fmtStamp(item.created_at)}
+                        </span>
+                      )}
+                      <CatBadge category={item.category} />
+                    </div>
                   </div>
 
                   {/* Description */}
                   {item.description && (
-                    <p className="text-xs text-ink-subtle leading-relaxed mb-1.5 ml-[18px]">
+                    <p className="text-xs text-ink-subtle leading-relaxed mb-2 ml-[18px]">
                       {item.description}
-                    </p>
-                  )}
-
-                  {/* Raised at */}
-                  {item.created_at && (
-                    <p className="text-xs text-ink-tertiary mb-2.5 ml-[18px] tabular">
-                      {fmtStamp(item.created_at)}
                     </p>
                   )}
 
