@@ -25,7 +25,7 @@ const STATS = [
 ];
 
 const TEAM = ["Shri", "Roshit", "Jhilik", "Amit", "Ritesh", "Harsha"];
-const ASSIGNEES = ["Harsha"];
+const ASSIGNEES = ["Harsha", "Roshit", "Amit", "Jhilik", "Ritesh"];
 
 const getCat  = (id) => CATS.find(c => c.id === id)  || CATS[0];
 const getPri  = (id) => PRIS.find(p => p.id === id)  || PRIS[2];
