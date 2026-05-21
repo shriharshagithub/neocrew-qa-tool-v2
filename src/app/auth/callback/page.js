@@ -9,32 +9,30 @@ export default function AuthCallback() {
   const [status, setStatus] = useState("Signing you in…");
 
   useEffect(() => {
-    const handleCallback = async () => {
-      // Try 1: listen for auth state change (Supabase handles PKCE automatically)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "SIGNED_IN" && session) {
-          subscription.unsubscribe();
-          router.push("/");
-        }
-      });
-
-      // Try 2: manually exchange the code using the full URL
-      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-      if (error) {
-        console.error("Auth callback error:", error.message);
-        // Try 3: check if already have a session (implicit flow)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          router.push("/");
-        } else {
-          setStatus("Sign-in failed — " + error.message);
-          setTimeout(() => router.push("/login"), 3000);
-        }
-      } else {
+    // With implicit flow, Supabase detects the session from the URL hash automatically.
+    // We just wait for the SIGNED_IN event and redirect.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        subscription.unsubscribe();
         router.push("/");
       }
+    });
+
+    // Also check if session already exists (in case event fired before listener)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.push("/");
+    });
+
+    // Timeout fallback
+    const timeout = setTimeout(() => {
+      setStatus("Taking too long — redirecting to login…");
+      setTimeout(() => router.push("/login"), 2000);
+    }, 10000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-    handleCallback();
   }, []);
 
   return (
