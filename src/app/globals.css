@@ -114,6 +114,7 @@ kbd {
   /* Card */
   .l-card {
     @apply bg-s1 border border-hairline rounded-xl;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.035);
   }
 }
 
@@ -146,3 +147,19 @@ kbd {
 
 /* ── Heading tracking ────────────────────── */
 h1, h2, h3 { letter-spacing: -0.02em; }
+
+/* ── Ambient background glow ─────────────── */
+@layer utilities {
+  .bg-canvas {
+    background:
+      radial-gradient(ellipse 90% 55% at 50% -5%, rgba(94,106,210,0.10) 0%, transparent 65%),
+      #010102;
+  }
+}
+
+/* ── Nav glass blur ──────────────────────── */
+.nav-blur {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(1,1,2,0.80) !important;
+}

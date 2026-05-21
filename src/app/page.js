@@ -333,7 +333,7 @@ export default function Home() {
     <div className="min-h-screen bg-canvas" onPaste={handlePaste} onKeyDown={onKeyDown}>
 
       {/* ── Nav ─────────────────────────────────────────────────────────────── */}
-      <nav className="border-b border-hairline h-14 flex items-center px-5 gap-4 sticky top-0 bg-canvas z-40">
+      <nav className="nav-blur border-b border-hairline h-14 flex items-center px-5 gap-4 sticky top-0 z-40">
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
