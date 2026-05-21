@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 
@@ -7,9 +6,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
+  const login = async () => {
+    setLoading(true); setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -18,48 +16,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-qa-bg dot-grid flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-6">
+      <div className="w-full max-w-[360px]">
 
-      {/* Ambient glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative w-full max-w-sm slide-in">
-
-        {/* Logo mark */}
-        <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-qa-card border border-qa-border flex items-center justify-center text-3xl amber-glow">
-            🧪
-          </div>
-        </div>
-
-        {/* Heading */}
+        {/* Wordmark */}
         <div className="text-center mb-10">
-          <h1 className="font-display text-4xl font-bold text-qa-text tracking-tight mb-2">
-            NeoCrew QA
+          <div className="inline-flex items-center gap-2 mb-6">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="2" width="9" height="9" rx="2" fill="#5e6ad2"/>
+              <rect x="13" y="2" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.6"/>
+              <rect x="2" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.6"/>
+              <rect x="13" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.3"/>
+            </svg>
+            <span className="text-ink font-semibold text-base tracking-tight">NeoCrew QA</span>
+          </div>
+          <h1 className="text-ink text-2xl font-semibold tracking-tight mb-2">
+            Sign in to continue
           </h1>
-          <p className="text-qa-muted text-sm">
-            Capture bugs. Ship with confidence.
+          <p className="text-ink-subtle text-sm">
+            Internal QA tool for the NeoCrew team
           </p>
         </div>
 
-        {/* Card */}
-        <div className="qa-card p-8 amber-glow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-qa-faint mb-5 text-center">
-            Sign in to continue
-          </p>
-
+        {/* Form card */}
+        <div className="l-card p-6">
           <button
-            onClick={handleGoogleLogin}
+            onClick={login}
             disabled={loading}
-            className={`w-full flex items-center justify-center gap-3 py-3.5 px-5 rounded-xl
-              font-semibold text-sm transition-all duration-200 cursor-pointer border
-              ${loading
-                ? "bg-qa-card border-qa-border text-qa-faint cursor-not-allowed"
-                : "bg-qa-surface border-qa-bright text-qa-text hover:border-amber-500/40 hover:bg-qa-card"
-              }`}
+            className="w-full flex items-center justify-center gap-2.5 bg-s2 hover:bg-s3
+                       border border-hairline hover:border-hairline-strong
+                       text-ink text-sm font-medium px-4 py-2.5 rounded-lg
+                       transition-colors duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <span className="w-4 h-4 border-2 border-qa-faint border-t-amber-500 rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-hairline-strong border-t-lavender rounded-full animate-spin" />
             ) : (
               <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 48 48">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -68,18 +58,18 @@ export default function LoginPage() {
                 <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
               </svg>
             )}
-            {loading ? "Redirecting…" : "Continue with Google"}
+            <span>{loading ? "Redirecting…" : "Continue with Google"}</span>
           </button>
 
           {error && (
-            <p className="mt-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-center">
+            <p className="mt-4 text-xs text-tag-red bg-tag-red/10 border border-tag-red/20 rounded-lg px-3 py-2 text-center">
               {error}
             </p>
           )}
         </div>
 
-        <p className="text-center text-xs text-qa-faint mt-6">
-          NeoCrew internal tool · team only
+        <p className="text-center text-xs text-ink-tertiary mt-5">
+          Access restricted to NeoCrew team members
         </p>
       </div>
     </div>
