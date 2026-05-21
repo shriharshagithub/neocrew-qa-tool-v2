@@ -10,13 +10,26 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      // Supabase v2 with PKCE — exchange the code in the URL
-      const { error } = await supabase.auth.exchangeCodeForSession(
-        window.location.search
-      );
+      // Try 1: listen for auth state change (Supabase handles PKCE automatically)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          subscription.unsubscribe();
+          router.push("/");
+        }
+      });
+
+      // Try 2: manually exchange the code using the full URL
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
       if (error) {
-        setStatus("Sign-in failed. Redirecting…");
-        setTimeout(() => router.push("/login"), 2000);
+        console.error("Auth callback error:", error.message);
+        // Try 3: check if already have a session (implicit flow)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          router.push("/");
+        } else {
+          setStatus("Sign-in failed — " + error.message);
+          setTimeout(() => router.push("/login"), 3000);
+        }
       } else {
         router.push("/");
       }
