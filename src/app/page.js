@@ -346,10 +346,10 @@ export default function Home() {
 
       {/* ── Nav ─────────────────────────────────────────────────────────────── */}
       <nav className="nav-blur border-b border-hairline h-14 flex items-center px-5 gap-4 sticky top-0 z-40">
-        {/* Logo */}
-        <div className="flex items-center flex-shrink-0">
+        {/* Logo → home */}
+        <button onClick={() => setView("capture")} className="flex items-center flex-shrink-0 bg-transparent border-none cursor-pointer p-0">
           <img src="/neocrew-logo.png" alt="NeoCrew QA" className="h-6 w-auto" />
-        </div>
+        </button>
 
         <span className="text-hairline-strong flex-shrink-0">/</span>
 
@@ -378,8 +378,21 @@ export default function Home() {
             </div>
         }
 
-        <button onClick={startNew} className="l-btn-ghost text-xs hidden sm:block">New</button>
-        <button onClick={() => supabase.auth.signOut()} className="text-xs text-ink-tertiary hover:text-ink bg-transparent border-none cursor-pointer transition-colors">Sign out</button>
+        {/* Overflow menu */}
+        <div className="relative group">
+          <button className="text-ink-tertiary hover:text-ink bg-transparent border-none cursor-pointer p-1 rounded transition-colors text-base leading-none" title="More options">···</button>
+          <div className="absolute right-0 top-full mt-1 w-44 bg-s2 border border-hairline rounded-xl shadow-lg overflow-hidden opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-100 z-50">
+            <button onClick={startNew}
+              className="w-full text-left text-sm text-ink-subtle hover:text-ink hover:bg-s3 px-4 py-2.5 border-none bg-transparent cursor-pointer transition-colors">
+              Start new session
+            </button>
+            <div className="border-t border-hairline" />
+            <button onClick={() => supabase.auth.signOut()}
+              className="w-full text-left text-sm text-tag-red hover:bg-tag-red/10 px-4 py-2.5 border-none bg-transparent cursor-pointer transition-colors">
+              Sign out
+            </button>
+          </div>
+        </div>
       </nav>
 
       {/* ── Tabs ────────────────────────────────────────────────────────────── */}
@@ -534,9 +547,12 @@ export default function Home() {
 
               <div className="overflow-y-auto" style={{ maxHeight: "calc(80vh - 50px)" }}>
                 {items.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <p className="text-ink-tertiary text-sm">No issues yet</p>
-                    <p className="text-ink-tertiary text-xs mt-1 opacity-60">Add your first issue on the left</p>
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <div className="w-10 h-10 rounded-xl bg-s2 border border-hairline flex items-center justify-center mb-3">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#62666d" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
+                    </div>
+                    <p className="text-ink-subtle text-sm font-medium mb-1">No issues captured yet</p>
+                    <p className="text-ink-tertiary text-xs leading-relaxed">Fill in the form and hit <span className="text-ink-subtle font-medium">Add to report</span>. Each issue is saved instantly and timestamped.</p>
                   </div>
                 ) : (
                   [...items].reverse().map((item, i) => (
