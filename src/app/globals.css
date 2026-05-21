@@ -45,11 +45,17 @@ kbd {
 
   /* Input */
   .l-input {
-    @apply w-full bg-s1 border border-hairline rounded-lg px-3 py-2
+    @apply w-full rounded-xl px-3 py-2
            text-ink text-sm placeholder:text-ink-tertiary
-           focus:outline-none focus:border-hairline-strong
-           focus:ring-2 focus:ring-lavender/20
+           focus:outline-none
            transition-colors duration-100;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .l-input:focus {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(94,106,210,0.5);
+    box-shadow: 0 0 0 3px rgba(94,106,210,0.12);
   }
 
   /* Pill badge */
@@ -81,9 +87,14 @@ kbd {
   /* Primary button */
   .l-btn-primary {
     @apply bg-lavender hover:bg-lavender-hover text-white
-           text-sm font-medium px-3.5 py-2 rounded-lg
-           border-none cursor-pointer transition-all duration-100
-           active:scale-[0.98];
+           text-sm font-medium px-5 py-2.5 rounded-full
+           border-none cursor-pointer
+           active:scale-[0.97];
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 8px rgba(94,106,210,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .l-btn-primary:hover {
+    box-shadow: 0 2px 16px rgba(94,106,210,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
   }
 
   /* Secondary button */
@@ -113,8 +124,13 @@ kbd {
 
   /* Card */
   .l-card {
-    @apply bg-s1 border border-hairline rounded-xl;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.035);
+    @apply bg-s1 rounded-2xl;
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 4px 24px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.15);
   }
 }
 
@@ -148,18 +164,63 @@ kbd {
 /* ── Heading tracking ────────────────────── */
 h1, h2, h3 { letter-spacing: -0.02em; }
 
-/* ── Ambient background glow ─────────────── */
-@layer utilities {
-  .bg-canvas {
-    background:
-      radial-gradient(ellipse 90% 55% at 50% -5%, rgba(94,106,210,0.10) 0%, transparent 65%),
-      #010102;
-  }
+/* ── Ambient orbs (two, fixed, pointer-events-none) ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 15% -5%, rgba(94,106,210,0.13) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 35% at 85% 5%,  rgba(59,158,221,0.07)  0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* ── Nav glass blur ──────────────────────── */
-.nav-blur {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(1,1,2,0.80) !important;
+/* ── Grain overlay ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.028;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
 }
+
+@layer utilities {
+  .bg-canvas { background: #010102; }
+}
+
+/* ── Floating nav ────────────────────────── */
+.floating-nav-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 10px 20px 4px;
+}
+.floating-nav {
+  max-width: 1152px;
+  margin: 0 auto;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(15,16,17,0.82);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.6),
+    0 8px 32px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+/* ── Priority left stripes ───────────────── */
+.pri-critical { border-left: 2px solid #e5484d; }
+.pri-high      { border-left: 2px solid #f76b15; }
+.pri-medium    { border-left: 2px solid #f5d90a; }
+.pri-low       { border-left: 2px solid #3e9b4f; }

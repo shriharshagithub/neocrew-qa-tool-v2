@@ -64,11 +64,13 @@ function CatBadge({ id }) {
 }
 
 // ── Issue row ─────────────────────────────────────────────────────────────────
+const priMap = { critical: 'pri-critical', high: 'pri-high', medium: 'pri-medium', low: 'pri-low' };
+
 function IssueRow({ item, onRemove, onStatus, showStatus }) {
   const isDone = item.status === "done";
   const stat   = getStat(item.status || "todo");
   return (
-    <div className={`group slide-in border-b border-hairline last:border-b-0 px-4 py-3 hover:bg-s1/60 transition-colors duration-75 ${isDone ? "done-row" : ""}`}>
+    <div className={`group slide-in border-b border-hairline last:border-b-0 pl-3 pr-4 py-3 hover:bg-white/[0.02] transition-colors duration-75 ${priMap[item.priority] || ''} ${isDone ? "done-row" : ""}`}>
 
       {/* ── Main row: dot · title · [right metadata] ── */}
       <div className="flex items-start gap-2.5 min-w-0">
@@ -356,13 +358,12 @@ export default function Home() {
     <div className="min-h-screen bg-canvas" onPaste={handlePaste} onKeyDown={onKeyDown}>
 
       {/* ── Nav ─────────────────────────────────────────────────────────────── */}
-      <nav className="nav-blur border-b border-hairline h-14 flex items-center px-5 gap-4 sticky top-0 z-40">
+      <div className="floating-nav-wrap">
+      <nav className="floating-nav">
         {/* Logo → home */}
         <button onClick={() => setView("capture")} className="flex items-center flex-shrink-0 bg-transparent border-none cursor-pointer p-0">
           <img src="/neocrew-logo.png" alt="NeoCrew QA" className="h-6 w-auto" />
         </button>
-
-        <span className="text-hairline-strong flex-shrink-0">/</span>
 
         {/* Session title — read-only timestamp */}
         <span className="text-sm text-ink-subtle truncate max-w-xs">{reportTitle}</span>
@@ -405,9 +406,10 @@ export default function Home() {
           </div>
         </div>
       </nav>
+      </div>
 
       {/* ── Tabs ────────────────────────────────────────────────────────────── */}
-      <div className="border-b border-hairline px-5">
+      <div className="border-b border-hairline px-5 mt-1">
         <div className="flex items-center gap-1 h-11 max-w-6xl mx-auto">
           <button onClick={() => setView("capture")} className={`l-tab ${view === "capture" ? "l-tab-active" : "l-tab-inactive"}`}>
             Capture
@@ -439,7 +441,8 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-5">
 
             {/* ── Form ── */}
-            <div className="l-card p-5 self-start">
+            <div className="self-start rounded-2xl p-px" style={{ background: "linear-gradient(145deg, rgba(94,106,210,0.25) 0%, rgba(255,255,255,0.06) 40%, rgba(0,0,0,0) 100%)" }}>
+            <div className="l-card p-5">
               <h2 className="text-sm font-semibold text-ink mb-4 tracking-tight">Log an issue</h2>
 
               {/* Media zone */}
@@ -531,15 +534,21 @@ export default function Home() {
 
               {/* Submit */}
               <button onClick={addItem} disabled={!canSubmit || saving}
-                className="w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-100 border-none"
+                className="w-full py-2.5 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-all duration-150 border-none"
                 style={added
-                  ? { background: "rgba(39,166,68,0.15)", color: "#27a644", cursor: "default" }
+                  ? { background: "rgba(39,166,68,0.15)", color: "#27a644", cursor: "default", boxShadow: "none" }
                   : canSubmit && !saving
-                  ? { background: "#5e6ad2", color: "#fff", cursor: "pointer" }
-                  : { background: "#0f1011", color: "#62666d", cursor: "not-allowed" }
+                  ? { background: "#5e6ad2", color: "#fff", cursor: "pointer", boxShadow: "0 1px 8px rgba(94,106,210,0.4), inset 0 1px 0 rgba(255,255,255,0.15)" }
+                  : { background: "rgba(255,255,255,0.04)", color: "#62666d", cursor: "not-allowed", boxShadow: "none" }
                 }>
-                {added ? "Added" : saving ? "Saving…" : "Add to report"}
+                <span>{added ? "Saved to report" : saving ? "Saving…" : "Add to report"}</span>
+                {!added && !saving && canSubmit && (
+                  <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </span>
+                )}
               </button>
+            </div>
             </div>
 
             {/* ── Issue list ── */}

@@ -16,7 +16,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex items-center justify-center p-6">
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-6 relative">
 
       {/* Centered content */}
       <div className="w-full max-w-[340px]">
@@ -25,7 +25,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-10">
           <img src="/neocrew-logo.png" alt="NeoCrew QA" className="h-9 w-auto mb-2" />
           <p className="text-ink-tertiary text-sm text-center">
-            Capture bugs and ship with confidence
+            Your team's QA command centre
           </p>
         </div>
 
