@@ -1,12 +1,14 @@
+import "./globals.css";
+
 export const metadata = {
   title: "NeoCrew QA Tool",
-  description: "Capture screenshots and share test reports",
+  description: "Capture bugs and features, share with your dev team",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, padding: 0 }}>{children}</body>
+      <body className="m-0 p-0 bg-slate-50 min-h-screen">{children}</body>
     </html>
   );
 }
