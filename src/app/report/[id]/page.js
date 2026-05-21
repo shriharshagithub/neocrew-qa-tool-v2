@@ -173,7 +173,11 @@ export default function SharedReport() {
                   {item.screenshot_url && (
                     <div className="ml-[18px] mb-2.5">
                       {item.media_type === "video"
-                        ? <video src={item.screenshot_url} controls className="rounded-lg max-h-60 border border-hairline" />
+                        ? <a href={item.screenshot_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-lavender hover:text-lavender-hover border border-hairline hover:border-hairline-strong rounded-lg px-3 py-1.5 transition-colors">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            Watch on Loom
+                          </a>
                         : <img src={item.screenshot_url} className="rounded-lg max-h-60 border border-hairline" alt="" />
                       }
                     </div>

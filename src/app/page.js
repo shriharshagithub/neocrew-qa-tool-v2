@@ -99,7 +99,11 @@ function IssueRow({ item, idx, onRemove, onStatus, showStatus }) {
       {item.screenshot_url && (
         <div className="mt-2 ml-[18px]">
           {item.media_type === "video"
-            ? <video src={item.screenshot_url} controls className="rounded-lg max-h-48 border border-hairline" />
+            ? <a href={item.screenshot_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-lavender hover:text-lavender-hover border border-hairline hover:border-hairline-strong rounded-lg px-3 py-1.5 transition-colors">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                Watch on Loom
+              </a>
             : <img
                 src={item.screenshot_url}
                 className="rounded-lg max-h-48 border border-hairline object-contain cursor-pointer"
@@ -132,6 +136,7 @@ export default function Home() {
   const [mediaFile, setMediaFile]   = useState(null);
   const [mediaType, setMediaType]   = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [videoLink, setVideoLink]   = useState("");
   const [view, setView]             = useState("capture");
   const [copied, setCopied]         = useState(false);
   const [saving, setSaving]         = useState(false);
@@ -184,10 +189,9 @@ export default function Home() {
   };
 
   // ── media ──
-  // Limits: images 10 MB, videos 50 MB (Supabase free tier cap is 50 MB per file)
-  const FILE_LIMITS = { image: 10 * 1024 * 1024, video: 50 * 1024 * 1024 };
+  // ── media ──
+  const FILE_LIMIT = 10 * 1024 * 1024; // 10 MB for images
 
-  // Compress images to JPEG before upload to keep DB + storage lean
   const compressImage = (file) => new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -206,36 +210,28 @@ export default function Home() {
   });
 
   const handleFile = (file) => {
-    if (!file || (!file.type.startsWith("image/") && !file.type.startsWith("video/"))) return;
-    const isVideo = file.type.startsWith("video/");
-    const limit   = isVideo ? FILE_LIMITS.video : FILE_LIMITS.image;
-    if (file.size > limit) {
-      alert(`File too large. Max ${isVideo ? "50 MB for videos" : "10 MB for images"} (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > FILE_LIMIT) {
+      alert(`Image too large — max 10 MB (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
       return;
     }
     setMediaFile(file);
-    setMediaType(isVideo ? "video" : "image");
+    setMediaType("image");
     const r = new FileReader();
     r.onload = e => setMediaPreview(e.target.result);
     r.readAsDataURL(file);
   };
   const handlePaste = (e) => {
     for (const it of e.clipboardData.items) {
-      if (it.type.startsWith("image/") || it.type.startsWith("video/")) { handleFile(it.getAsFile()); break; }
+      if (it.type.startsWith("image/")) { handleFile(it.getAsFile()); break; }
     }
   };
-  const uploadMedia = async (file, isVideo) => {
+  const uploadMedia = async (file) => {
     if (!supabase) return null;
-    const toUpload = isVideo ? file : await compressImage(file);
-    const ext  = isVideo ? (file.name?.split(".").pop() || "mp4") : "jpg";
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-    const { error } = await supabase.storage.from("screenshots").upload(name, toUpload, {
-      contentType: isVideo ? file.type : "image/jpeg",
-    });
-    if (error) {
-      console.error("Storage upload failed:", error.message);
-      return null; // never fall back to data URL — avoids bloating the DB
-    }
+    const toUpload = await compressImage(file);
+    const name = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`;
+    const { error } = await supabase.storage.from("screenshots").upload(name, toUpload, { contentType: "image/jpeg" });
+    if (error) { console.error("Storage upload failed:", error.message); return null; }
     return supabase.storage.from("screenshots").getPublicUrl(name).data.publicUrl;
   };
 
@@ -246,18 +242,23 @@ export default function Home() {
     if (!canSubmit || saving) return;
     setSaving(true);
     let mediaUrl = null;
-    if (mediaFile) {
-      const isVideo = mediaType === "video";
-      mediaUrl = await uploadMedia(mediaFile, isVideo);
-      if (mediaFile && !mediaUrl) {
-        if (!confirm("Attachment upload failed — add the issue without it?")) { setSaving(false); return; }
+    let finalMediaType = null;
+    if (videoLink.trim()) {
+      mediaUrl = videoLink.trim();
+      finalMediaType = "video";
+    } else if (mediaFile) {
+      mediaUrl = await uploadMedia(mediaFile);
+      if (!mediaUrl) {
+        if (!confirm("Image upload failed — add the issue without it?")) { setSaving(false); return; }
+      } else {
+        finalMediaType = "image";
       }
     }
     const item = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
       report_id: reportId, title: title.trim(), description: desc.trim(),
       category: cat, priority: pri, screenshot_url: mediaUrl,
-      media_type: mediaType || "image", status: "todo",
+      media_type: finalMediaType, status: "todo",
       raised_by: raisedBy || null, assignee: assignedTo || null,
       created_at: new Date().toISOString(),
     };
@@ -266,7 +267,7 @@ export default function Home() {
       await supabase.from("items").insert(item);
     }
     setItems(p => [...p, item]);
-    setTitle(""); setDesc(""); setMediaPreview(null); setMediaFile(null); setMediaType(null);
+    setTitle(""); setDesc(""); setMediaPreview(null); setMediaFile(null); setMediaType(null); setVideoLink("");
     setRaisedBy(user ? firstName(user) : ""); setAssignedTo("");
     setSaving(false); setAdded(true); setTimeout(() => setAdded(false), 1200);
   };
@@ -452,8 +453,17 @@ export default function Home() {
                     </div>
                   : <p className="text-xs text-ink-tertiary">Attach screenshot · paste <kbd className="font-mono">⌘V</kbd></p>
                 }
-                <input ref={fileRef} type="file" accept="image/*,video/*" onChange={e => handleFile(e.target.files[0])} className="hidden" />
+                <input ref={fileRef} type="file" accept="image/*" onChange={e => handleFile(e.target.files[0])} className="hidden" />
               </div>
+
+              {/* Loom link */}
+              <input
+                type="url"
+                placeholder="Loom video link (optional)"
+                value={videoLink}
+                onChange={e => setVideoLink(e.target.value)}
+                className="l-input mb-4"
+              />
 
               {/* Title */}
               <input type="text" placeholder="Issue title *" value={title} onChange={e => setTitle(e.target.value)} className="l-input mb-2.5" />
