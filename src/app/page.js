@@ -25,6 +25,7 @@ const STATS = [
 ];
 
 const TEAM = ["Shri", "Roshit", "Jhilik", "Amit", "Ritesh", "Harsha"];
+const ASSIGNEES = ["Harsha"];
 
 const getCat  = (id) => CATS.find(c => c.id === id)  || CATS[0];
 const getPri  = (id) => PRIS.find(p => p.id === id)  || PRIS[2];
@@ -335,14 +336,8 @@ export default function Home() {
       {/* ── Nav ─────────────────────────────────────────────────────────────── */}
       <nav className="nav-blur border-b border-hairline h-14 flex items-center px-5 gap-4 sticky top-0 z-40">
         {/* Logo */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <rect x="2" y="2" width="9" height="9" rx="2" fill="#5e6ad2"/>
-            <rect x="13" y="2" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.55"/>
-            <rect x="2" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.55"/>
-            <rect x="13" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.25"/>
-          </svg>
-          <span className="text-ink text-sm font-semibold tracking-tight">NeoCrew QA</span>
+        <div className="flex items-center flex-shrink-0">
+          <img src="/neocrew-logo.png" alt="NeoCrew QA" className="h-6 w-auto" />
         </div>
 
         <span className="text-hairline-strong flex-shrink-0">/</span>
@@ -516,7 +511,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs text-ink-tertiary font-medium mb-1.5">Assigned to <span className="text-tag-red">*</span></p>
                   <input list="tl-a" type="text" placeholder="Name" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="l-input text-sm" />
-                  <datalist id="tl-a">{TEAM.map(m => <option key={m} value={m}/>)}</datalist>
+                  <datalist id="tl-a">{ASSIGNEES.map(m => <option key={m} value={m}/>)}</datalist>
                 </div>
               </div>
 

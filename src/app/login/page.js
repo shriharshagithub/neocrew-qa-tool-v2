@@ -23,17 +23,7 @@ export default function LoginPage() {
 
         {/* Logo + name */}
         <div className="flex flex-col items-center mb-10">
-          <div className="mb-5 p-3 rounded-2xl" style={{ background: "rgba(94,106,210,0.12)", border: "1px solid rgba(94,106,210,0.2)" }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <rect x="2" y="2" width="9" height="9" rx="2" fill="#5e6ad2"/>
-              <rect x="13" y="2" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.6"/>
-              <rect x="2" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.6"/>
-              <rect x="13" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.3"/>
-            </svg>
-          </div>
-          <h1 className="text-ink text-xl font-semibold tracking-tight mb-1.5">
-            NeoCrew QA
-          </h1>
+          <img src="/neocrew-logo.png" alt="NeoCrew QA" className="h-9 w-auto mb-2" />
           <p className="text-ink-tertiary text-sm text-center">
             Capture bugs and ship with confidence
           </p>

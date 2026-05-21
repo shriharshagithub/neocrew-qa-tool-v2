@@ -82,13 +82,7 @@ export default function SharedReport() {
 
       {/* Nav */}
       <header className="h-14 border-b border-hairline flex items-center px-6 gap-3">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="flex-shrink-0">
-          <rect x="2" y="2" width="9" height="9" rx="2" fill="#5e6ad2"/>
-          <rect x="13" y="2" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.6"/>
-          <rect x="2" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.6"/>
-          <rect x="13" y="13" width="9" height="9" rx="2" fill="#5e6ad2" opacity="0.3"/>
-        </svg>
-        <span className="text-ink-subtle text-sm">NeoCrew QA</span>
+        <img src="/neocrew-logo.png" alt="NeoCrew QA" className="h-5 w-auto" />
         <span className="text-hairline-strong">·</span>
         <span className="text-ink-tertiary text-sm">Shared report</span>
       </header>
