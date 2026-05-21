@@ -116,13 +116,13 @@ export default function SharedReport() {
                 const count = items.filter(i => (i.status || "todo") === s.id).length;
                 return (
                   <div key={s.id} className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium" style={{ color: s.color }}>{count}</span>
+                    <span className="text-xs font-medium tabular" style={{ color: s.color }}>{count}</span>
                     <span className="text-xs text-ink-tertiary">{s.label}</span>
                   </div>
                 );
               })}
               <div className="ml-auto text-xs text-ink-tertiary">
-                <span className="text-ink font-medium">{pct}%</span> resolved
+                <span className="text-ink font-medium tabular">{pct}%</span> resolved
               </div>
             </div>
             {/* Thin progress bar */}

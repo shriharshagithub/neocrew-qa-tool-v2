@@ -383,7 +383,7 @@ export default function Home() {
         )}
 
         {items.length > 0 && (
-          <span className="hidden sm:block text-xs text-ink-tertiary">{done}/{items.length} done</span>
+          <span className="hidden sm:block text-xs text-ink-tertiary tabular">{done}/{items.length} done</span>
         )}
 
         {user?.user_metadata?.avatar_url
@@ -416,7 +416,7 @@ export default function Home() {
               <div className="w-20 h-0.5 bg-hairline rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: "#27a644" }} />
               </div>
-              <span className="text-xs text-ink-tertiary">{pct}%</span>
+              <span className="text-xs text-ink-tertiary tabular">{pct}%</span>
             </div>
           )}
         </div>
@@ -451,7 +451,7 @@ export default function Home() {
                       <button onClick={e => { e.stopPropagation(); setMediaPreview(null); setMediaFile(null); setMediaType(null); }}
                         className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-s3 text-ink-subtle rounded-full text-xs border border-hairline cursor-pointer flex items-center justify-center">✕</button>
                     </div>
-                  : <p className="text-xs text-ink-tertiary">Attach screenshot · paste <kbd className="font-mono">⌘V</kbd></p>
+                  : <p className="text-xs text-ink-tertiary">Attach screenshot · paste <kbd>⌘V</kbd></p>
                 }
                 <input ref={fileRef} type="file" accept="image/*" onChange={e => handleFile(e.target.files[0])} className="hidden" />
               </div>
@@ -589,8 +589,8 @@ export default function Home() {
                   <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: "#27a644" }} />
                 </div>
                 <div className="flex justify-between mt-1.5">
-                  <span className="text-xs text-ink-tertiary">{done} of {items.length} resolved</span>
-                  <span className="text-xs" style={{ color: pct === 100 ? "#27a644" : "#62666d" }}>{pct}%</span>
+                  <span className="text-xs text-ink-tertiary tabular">{done} of {items.length} resolved</span>
+                  <span className="text-xs tabular" style={{ color: pct === 100 ? "#27a644" : "#62666d" }}>{pct}%</span>
                 </div>
               </div>
             )}
@@ -610,7 +610,7 @@ export default function Home() {
                   const n = items.filter(i => i.category === c.id).length;
                   return (
                     <div key={c.id} className="l-card px-4 py-3">
-                      <div className="text-xl font-semibold text-ink tracking-tight">{n}</div>
+                      <div className="text-xl font-semibold text-ink tracking-tight tabular">{n}</div>
                       <CatBadge id={c.id} />
                     </div>
                   );

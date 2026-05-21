@@ -2,15 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Geist is loaded via next/font — no external import needed */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { scroll-behavior: smooth; }
+
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif;
   background: #010102;
   color: #f7f8f8;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -19,6 +22,23 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #23252a; border-radius: 2px; }
+
+/* ── Tabular numbers — counts, stats, progress ── */
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* ── kbd — keyboard shortcuts ────────────── */
+kbd {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #141516;
+  border: 1px solid #34343a;
+  color: #8a8f98;
+  letter-spacing: 0;
+}
 
 /* ── Layer ───────────────────────────────── */
 @layer components {
@@ -36,6 +56,7 @@ body {
   .l-badge {
     @apply inline-flex items-center gap-1 text-xs font-medium
            px-2 py-0.5 rounded-full border;
+    letter-spacing: 0.01em;
   }
 
   /* Issue row */
@@ -53,34 +74,39 @@ body {
   /* Status chip */
   .l-chip {
     @apply text-xs font-medium px-2.5 py-1 rounded-full border
-           transition-colors duration-100 cursor-pointer;
+           transition-colors duration-100 cursor-pointer
+           active:scale-95;
   }
 
   /* Primary button */
   .l-btn-primary {
     @apply bg-lavender hover:bg-lavender-hover text-white
            text-sm font-medium px-3.5 py-2 rounded-lg
-           border-none cursor-pointer transition-colors duration-100;
+           border-none cursor-pointer transition-all duration-100
+           active:scale-[0.98];
   }
 
   /* Secondary button */
   .l-btn-secondary {
     @apply bg-s1 hover:bg-s2 text-ink
            text-sm font-medium px-3.5 py-2 rounded-lg
-           border border-hairline cursor-pointer transition-colors duration-100;
+           border border-hairline cursor-pointer
+           transition-all duration-100 active:scale-[0.98];
   }
 
   /* Ghost button */
   .l-btn-ghost {
     @apply bg-transparent hover:bg-s1 text-ink-subtle hover:text-ink
            text-sm font-medium px-3 py-1.5 rounded-lg
-           border-none cursor-pointer transition-colors duration-100;
+           border-none cursor-pointer transition-all duration-100
+           active:scale-[0.98];
   }
 
   /* Nav tab */
   .l-tab {
     @apply text-sm font-medium px-3 py-1.5 rounded-md
            border-none cursor-pointer transition-colors duration-100;
+    letter-spacing: -0.01em;
   }
   .l-tab-active   { @apply bg-s2 text-ink; }
   .l-tab-inactive { @apply text-ink-subtle hover:text-ink bg-transparent; }
@@ -93,12 +119,20 @@ body {
 
 /* ── Slide-in ────────────────────────────── */
 .slide-in {
-  animation: slideIn 0.15s ease-out both;
+  animation: slideIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Staggered entry for issue rows ─────── */
+.l-row:nth-child(1)  { animation-delay: 0ms; }
+.l-row:nth-child(2)  { animation-delay: 30ms; }
+.l-row:nth-child(3)  { animation-delay: 60ms; }
+.l-row:nth-child(4)  { animation-delay: 90ms; }
+.l-row:nth-child(5)  { animation-delay: 120ms; }
+.l-row:nth-child(n+6){ animation-delay: 150ms; }
 
 /* ── Done state ──────────────────────────── */
 .done-row { opacity: 0.38; }
@@ -109,3 +143,6 @@ body {
   outline: 2px solid rgba(94, 106, 210, 0.5);
   outline-offset: 2px;
 }
+
+/* ── Heading tracking ────────────────────── */
+h1, h2, h3 { letter-spacing: -0.02em; }
