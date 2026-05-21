@@ -37,8 +37,8 @@ setup("authenticate", async ({ page }) => {
   // Google's UI is interactive, so we just wait until the user finishes and lands back on the app
   await page.waitForURL("/", { timeout: 120_000 }); // 2 min to complete manual login
 
-  // Confirm we're actually logged in
-  await expect(page.locator("header")).toBeVisible();
+  // Confirm we're actually logged in (app uses <nav> not <header>)
+  await expect(page.locator("nav")).toBeVisible();
 
   // Save the full browser state (cookies + localStorage)
   await page.context().storageState({ path: AUTH_FILE });

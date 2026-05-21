@@ -9,7 +9,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "test:load:pages": "k6 run tests/load/pages.js --env BASE_URL=https://neocrew-qa-tool-v2.vercel.app",
+    "test:load:api": "k6 run tests/load/api.js --env SUPABASE_URL=https://duwnavhedpitpfomijcq.supabase.co --env SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.39.0",

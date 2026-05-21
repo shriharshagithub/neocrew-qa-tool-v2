@@ -32,13 +32,15 @@ module.exports = defineConfig({
     },
   ],
 
-  // Start dev server automatically when running locally
-  webServer: process.env.CI
-    ? undefined
-    : {
-        command: "npm run dev",
-        url: "http://localhost:3000",
-        reuseExistingServer: true,
-        timeout: 30_000,
-      },
+  // Only start dev server when running against localhost (not against production/staging)
+  webServer: (() => {
+    const base = process.env.PLAYWRIGHT_BASE_URL || "";
+    if (process.env.CI || (base && !base.includes("localhost"))) return undefined;
+    return {
+      command: "npm run dev",
+      url: "http://localhost:3000",
+      reuseExistingServer: true,
+      timeout: 30_000,
+    };
+  })(),
 });
