@@ -24,7 +24,7 @@ const STATS = [
   { id: "done",        label: "Done",        color: "#27a644",  activeBg: "rgba(39,166,68,0.12)"   },
 ];
 
-const TEAM = ["Shri", "Roshit", "Jhilik", "Ananya", "Ritesh", "Harsha"];
+const TEAM = ["Shri", "Roshit", "Jhilik", "Amit", "Ritesh", "Harsha"];
 
 const getCat  = (id) => CATS.find(c => c.id === id)  || CATS[0];
 const getPri  = (id) => PRIS.find(p => p.id === id)  || PRIS[2];
@@ -197,20 +197,27 @@ export default function Home() {
       if (it.type.startsWith("image/") || it.type.startsWith("video/")) { handleFile(it.getAsFile()); break; }
     }
   };
-  const uploadMedia = async (file) => {
-    if (!supabase) return null;
+  const uploadMedia = async (file, dataUrl) => {
+    if (!supabase) return dataUrl || null;
     const ext = file.name?.split(".").pop() || (file.type.startsWith("video/") ? "mp4" : "png");
     const name = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-    await supabase.storage.from("screenshots").upload(name, file);
-    return supabase.storage.from("screenshots").getPublicUrl(name).data.publicUrl;
+    const { error } = await supabase.storage.from("screenshots").upload(name, file);
+    if (error) {
+      console.warn("Storage upload failed, using local data URL:", error.message);
+      return dataUrl || null;
+    }
+    const { data } = supabase.storage.from("screenshots").getPublicUrl(name);
+    return data.publicUrl;
   };
 
   // ── add ──
+  const canSubmit = title.trim() && desc.trim() && raisedBy.trim() && assignedTo.trim();
+
   const addItem = async () => {
-    if (!title.trim() || saving) return;
+    if (!canSubmit || saving) return;
     setSaving(true);
-    let mediaUrl = mediaPreview;
-    if (mediaFile && supabase) { const u = await uploadMedia(mediaFile); if (u) mediaUrl = u; }
+    let mediaUrl = mediaPreview || null;
+    if (mediaFile) { mediaUrl = await uploadMedia(mediaFile, mediaPreview); }
     const item = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
       report_id: reportId, title: title.trim(), description: desc.trim(),
@@ -414,10 +421,10 @@ export default function Home() {
               </div>
 
               {/* Title */}
-              <input type="text" placeholder="Issue title" value={title} onChange={e => setTitle(e.target.value)} className="l-input mb-2.5" />
+              <input type="text" placeholder="Issue title *" value={title} onChange={e => setTitle(e.target.value)} className="l-input mb-2.5" />
 
               {/* Description */}
-              <textarea placeholder="Add description, steps, or context…" value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="l-input mb-4 resize-none" />
+              <textarea placeholder="Description, steps, or context *" value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="l-input mb-4 resize-none" />
 
               {/* Category */}
               <div className="mb-3">
@@ -457,23 +464,23 @@ export default function Home() {
               {/* People */}
               <div className="grid grid-cols-2 gap-2.5 mb-4">
                 <div>
-                  <p className="text-xs text-ink-tertiary font-medium mb-1.5">Raised by</p>
+                  <p className="text-xs text-ink-tertiary font-medium mb-1.5">Raised by <span className="text-tag-red">*</span></p>
                   <input list="tl-r" type="text" placeholder="Name" value={raisedBy} onChange={e => setRaisedBy(e.target.value)} className="l-input text-sm" />
                   <datalist id="tl-r">{TEAM.map(m => <option key={m} value={m}/>)}</datalist>
                 </div>
                 <div>
-                  <p className="text-xs text-ink-tertiary font-medium mb-1.5">Assigned to</p>
+                  <p className="text-xs text-ink-tertiary font-medium mb-1.5">Assigned to <span className="text-tag-red">*</span></p>
                   <input list="tl-a" type="text" placeholder="Name" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="l-input text-sm" />
                   <datalist id="tl-a">{TEAM.map(m => <option key={m} value={m}/>)}</datalist>
                 </div>
               </div>
 
               {/* Submit */}
-              <button onClick={addItem} disabled={!title.trim() || saving}
+              <button onClick={addItem} disabled={!canSubmit || saving}
                 className="w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-100 border-none"
                 style={added
                   ? { background: "rgba(39,166,68,0.15)", color: "#27a644", cursor: "default" }
-                  : title.trim() && !saving
+                  : canSubmit && !saving
                   ? { background: "#5e6ad2", color: "#fff", cursor: "pointer" }
                   : { background: "#0f1011", color: "#62666d", cursor: "not-allowed" }
                 }>
