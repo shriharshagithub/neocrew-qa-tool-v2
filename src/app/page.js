@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -35,37 +36,13 @@ const todayTitle = () => {
   return `QA Session – ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 };
 
-// ─── Name Modal ───────────────────────────────────────────────────────────────
-function NameModal({ onSave }) {
-  const [name, setName] = useState("");
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 fade-in">
-        <div className="text-3xl mb-3">👋</div>
-        <h2 className="text-xl font-bold text-slate-800 mb-1">Welcome to NeoCrew QA</h2>
-        <p className="text-slate-500 text-sm mb-6">What's your name? We'll use it to tag items you raise.</p>
-        <input
-          autoFocus
-          type="text"
-          className="input mb-4"
-          placeholder="e.g. Shri, Roshit, Ananya…"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && name.trim() && onSave(name.trim())}
-          list="team-names-modal"
-        />
-        <datalist id="team-names-modal">{TEAM.map((m) => <option key={m} value={m} />)}</datalist>
-        <button
-          onClick={() => name.trim() && onSave(name.trim())}
-          disabled={!name.trim()}
-          className={`w-full py-3 rounded-xl font-bold text-base transition-colors ${name.trim() ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer" : "bg-slate-100 text-slate-400 cursor-not-allowed"} border-none`}
-        >
-          Let's go →
-        </button>
-      </div>
-    </div>
-  );
-}
+// ─── helper: first name from full name or email ───────────────────────────────
+const firstName = (user) => {
+  const full = user?.user_metadata?.full_name || user?.user_metadata?.name || "";
+  return full.split(" ")[0] || user?.email?.split("@")[0] || "You";
+};
+
+const avatarLetter = (user) => firstName(user).charAt(0).toUpperCase();
 
 // ─── Item Card (compact) ──────────────────────────────────────────────────────
 function ItemCard({ item, onRemove }) {
@@ -107,8 +84,10 @@ function ItemCard({ item, onRemove }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Home() {
-  const [userName, setUserName]       = useState(null);
-  const [showNameModal, setShowNameModal] = useState(false);
+  const router = useRouter();
+
+  const [user, setUser]               = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const [items, setItems]             = useState([]);
   const [reportId, setReportId]       = useState(null);
@@ -137,23 +116,31 @@ export default function Home() {
   const fileRef       = useRef(null);
   const titleInputRef = useRef(null);
 
-  // ── boot ──
+  // ── auth guard ──
   useEffect(() => {
-    const saved = localStorage.getItem("qa_user_name");
-    if (saved) {
-      setUserName(saved);
-      setRaisedBy(saved);
-    } else {
-      setShowNameModal(true);
-    }
-    loadOrCreateReport();
+    if (!supabase) { setAuthLoading(false); return; }
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push("/login"); return; }
+      setUser(user);
+      setRaisedBy(firstName(user));
+      setAuthLoading(false);
+      loadOrCreateReport();
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") router.push("/login");
+      if (event === "SIGNED_IN" && session?.user) {
+        setUser(session.user);
+        setRaisedBy(firstName(session.user));
+      }
+    });
+    return () => listener.subscription.unsubscribe();
   }, []);
 
-  const handleNameSave = (name) => {
-    localStorage.setItem("qa_user_name", name);
-    setUserName(name);
-    setRaisedBy(name);
-    setShowNameModal(false);
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
   // ── report persistence ──
@@ -269,8 +256,7 @@ export default function Home() {
     setMediaPreview(null);
     setMediaFile(null);
     setMediaType(null);
-    const saved = localStorage.getItem("qa_user_name");
-    setRaisedBy(saved || "");
+    setRaisedBy(user ? firstName(user) : "");
     setAssignedTo("");
     setSaving(false);
   };
@@ -341,9 +327,20 @@ export default function Home() {
   const doneCount = items.filter((i) => i.status === "done").length;
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Loading screen while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-3">🧪</div>
+          <p className="text-slate-400 font-medium">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50" onPaste={handlePaste} onKeyDown={handleKeyDown}>
-      {showNameModal && <NameModal onSave={handleNameSave} />}
 
       {/* ── Header ── */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-40">
@@ -383,12 +380,16 @@ export default function Home() {
 
           {/* Right controls */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            {userName && (
+            {user && (
               <div className="flex items-center gap-2 text-sm text-slate-500">
-                <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                <span className="hidden sm:block font-medium">{userName}</span>
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} className="w-7 h-7 rounded-full" alt="" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">
+                    {avatarLetter(user)}
+                  </div>
+                )}
+                <span className="hidden sm:block font-medium">{firstName(user)}</span>
               </div>
             )}
             <button
@@ -396,6 +397,13 @@ export default function Home() {
               className="text-sm font-semibold text-slate-500 hover:text-slate-800 border border-slate-200 hover:border-slate-300 bg-white px-4 py-2 rounded-xl transition-colors cursor-pointer"
             >
               + New Session
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="text-sm font-semibold text-slate-400 hover:text-red-500 bg-transparent border-none cursor-pointer transition-colors"
+              title="Sign out"
+            >
+              Sign out
             </button>
           </div>
         </div>
