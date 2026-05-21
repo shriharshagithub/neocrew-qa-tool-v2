@@ -5,31 +5,30 @@ import { supabase } from "../../../lib/supabase";
 import { useParams } from "next/navigation";
 
 const CATEGORIES = [
-  { id: "bug",         label: "Bug",         color: "text-red-600",    bg: "bg-red-50",    border: "border-red-200",   emoji: "🐛" },
-  { id: "feature",     label: "Feature",     color: "text-violet-600", bg: "bg-violet-50", border: "border-violet-200",emoji: "✨" },
-  { id: "improvement", label: "Improvement", color: "text-blue-600",   bg: "bg-blue-50",   border: "border-blue-200",  emoji: "💡" },
-  { id: "question",    label: "Question",    color: "text-amber-600",  bg: "bg-amber-50",  border: "border-amber-200", emoji: "❓" },
+  { id: "bug",         emoji: "🐛", label: "Bug",         badge: "bg-red-500/10 text-red-400 border border-red-500/20",       catCls: "cat-bug" },
+  { id: "feature",     emoji: "✨", label: "Feature",     badge: "bg-violet-500/10 text-violet-400 border border-violet-500/20", catCls: "cat-feature" },
+  { id: "improvement", emoji: "💡", label: "Improvement", badge: "bg-sky-500/10 text-sky-400 border border-sky-500/20",         catCls: "cat-improvement" },
+  { id: "question",    emoji: "❓", label: "Question",    badge: "bg-amber-500/10 text-amber-400 border border-amber-500/20",   catCls: "cat-question" },
 ];
 
 const PRIORITIES = [
-  { id: "critical", label: "Critical", hex: "#dc2626" },
-  { id: "high",     label: "High",     hex: "#ea580c" },
-  { id: "medium",   label: "Medium",   hex: "#ca8a04" },
-  { id: "low",      label: "Low",      hex: "#65a30d" },
+  { id: "critical", label: "Critical", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+  { id: "high",     label: "High",     cls: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  { id: "medium",   label: "Medium",   cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  { id: "low",      label: "Low",      cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
 ];
 
 const STATUSES = [
-  { id: "todo",        label: "To Do",       color: "text-slate-600",  bg: "bg-slate-100",  ring: "ring-slate-400" },
-  { id: "in_progress", label: "In Progress", color: "text-amber-700",  bg: "bg-amber-100",  ring: "ring-amber-400" },
-  { id: "done",        label: "Done",        color: "text-emerald-700",bg: "bg-emerald-100",ring: "ring-emerald-400" },
+  { id: "todo",        label: "To Do",       active: "bg-zinc-700 text-zinc-200 border-zinc-600",               inactive: "bg-transparent text-zinc-600 border-zinc-800 hover:border-zinc-600" },
+  { id: "in_progress", label: "In Progress", active: "bg-amber-500/15 text-amber-400 border-amber-500/30",      inactive: "bg-transparent text-zinc-600 border-zinc-800 hover:border-zinc-600" },
+  { id: "done",        label: "Done",        active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",inactive: "bg-transparent text-zinc-600 border-zinc-800 hover:border-zinc-600" },
 ];
 
-const getCat    = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
-const getPri    = (id) => PRIORITIES.find((p) => p.id === id) || PRIORITIES[2];
-const getStatus = (id) => STATUSES.find((s) => s.id === id)   || STATUSES[0];
+const getCat = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[0];
+const getPri = (id) => PRIORITIES.find(p => p.id === id) || PRIORITIES[2];
 
 export default function SharedReport() {
-  const { id }    = useParams();
+  const { id } = useParams();
   const [items,   setItems]   = useState([]);
   const [report,  setReport]  = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,58 +46,55 @@ export default function SharedReport() {
 
   const updateStatus = async (itemId, newStatus) => {
     if (supabase) await supabase.from("items").update({ status: newStatus }).eq("id", itemId);
-    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, status: newStatus } : i));
+    setItems(prev => prev.map(i => i.id === itemId ? { ...i, status: newStatus } : i));
   };
 
-  // ── stats ──
-  const todoCount       = items.filter((i) => (i.status || "todo") === "todo").length;
-  const inProgressCount = items.filter((i) => i.status === "in_progress").length;
-  const doneCount       = items.filter((i) => i.status === "done").length;
+  const todo       = items.filter(i => (i.status || "todo") === "todo").length;
+  const inProgress = items.filter(i => i.status === "in_progress").length;
+  const done       = items.filter(i => i.status === "done").length;
+  const pct        = items.length ? Math.round((done / items.length) * 100) : 0;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-3 animate-spin">⏳</div>
-          <p className="text-slate-400 font-medium">Loading report…</p>
-        </div>
+  if (loading) return (
+    <div className="min-h-screen bg-qa-bg flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-zinc-800 border-t-amber-500 rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-zinc-500 text-sm">Loading report…</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!report) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-        <div className="text-6xl mb-4">🔍</div>
-        <h1 className="text-xl font-bold text-slate-700 mb-2">Report not found</h1>
-        <p className="text-slate-400 text-sm">The link may have expired or the report was deleted.</p>
-      </div>
-    );
-  }
+  if (!report) return (
+    <div className="min-h-screen bg-qa-bg flex flex-col items-center justify-center">
+      <div className="text-5xl mb-4 opacity-30">🔍</div>
+      <h1 className="font-display font-bold text-xl text-zinc-200">Report not found</h1>
+      <p className="text-zinc-500 text-sm mt-2">This link may have expired.</p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-qa-bg text-qa-text">
+
       {/* Header */}
-      <header className="bg-white border-b border-slate-100">
+      <header className="border-b border-qa-border bg-qa-surface">
         <div className="max-w-4xl mx-auto px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-sm text-slate-400 mb-1">
+              <div className="flex items-center gap-2 text-xs text-qa-faint mb-2">
                 <span>🧪</span>
-                <span className="font-semibold">NeoCrew QA</span>
+                <span className="font-semibold text-qa-muted">NeoCrew QA</span>
                 <span>·</span>
                 <span>Shared Report</span>
               </div>
-              <h1 className="text-2xl font-extrabold text-slate-800">{report.title || "QA Report"}</h1>
-              <p className="text-sm text-slate-400 mt-1">
-                {items.length} item{items.length !== 1 ? "s" : ""} · Created {new Date(report.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              <h1 className="font-display font-bold text-2xl text-qa-text">{report.title || "QA Report"}</h1>
+              <p className="text-sm text-qa-muted mt-1">
+                {items.length} item{items.length !== 1 ? "s" : ""}
+                {" · "}Created {new Date(report.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </p>
             </div>
-            {/* Progress pill */}
             {items.length > 0 && (
-              <div className="flex-shrink-0 text-right">
-                <div className="text-2xl font-extrabold text-emerald-600">{Math.round((doneCount / items.length) * 100)}%</div>
-                <div className="text-xs text-slate-400 font-medium">resolved</div>
+              <div className="text-right flex-shrink-0">
+                <div className="font-display font-bold text-3xl text-emerald-400">{pct}%</div>
+                <div className="text-xs text-qa-muted font-medium mt-0.5">resolved</div>
               </div>
             )}
           </div>
@@ -106,123 +102,111 @@ export default function SharedReport() {
       </header>
 
       <div className="max-w-4xl mx-auto px-6 py-8">
+
         {/* Status summary */}
         {items.length > 0 && (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <div className="bg-slate-100 rounded-xl p-4 text-center">
-                <div className="text-2xl font-extrabold text-slate-600">{todoCount}</div>
-                <div className="text-xs font-semibold text-slate-500 mt-0.5">To Do</div>
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="qa-card p-4 text-center">
+                <div className="font-display font-bold text-2xl text-zinc-300">{todo}</div>
+                <div className="text-xs font-semibold text-qa-muted mt-0.5">To Do</div>
               </div>
-              <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-center">
-                <div className="text-2xl font-extrabold text-amber-600">{inProgressCount}</div>
+              <div className="qa-card p-4 text-center border-amber-500/20">
+                <div className="font-display font-bold text-2xl text-amber-400">{inProgress}</div>
                 <div className="text-xs font-semibold text-amber-600 mt-0.5">In Progress</div>
               </div>
-              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center">
-                <div className="text-2xl font-extrabold text-emerald-600">{doneCount}</div>
+              <div className="qa-card p-4 text-center border-emerald-500/20">
+                <div className="font-display font-bold text-2xl text-emerald-400">{done}</div>
                 <div className="text-xs font-semibold text-emerald-600 mt-0.5">Done</div>
               </div>
             </div>
 
             {/* Progress bar */}
-            <div className="h-2 bg-slate-200 rounded-full mb-8 overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 rounded-full transition-all"
-                style={{ width: `${(doneCount / items.length) * 100}%` }}
-              />
+            <div className="mb-6">
+              <div className="h-2 bg-qa-border rounded-full overflow-hidden">
+                <div className="progress-bar h-full" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+
+            {/* Dev hint */}
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-5 py-3 mb-6 text-sm text-amber-300">
+              <span className="font-semibold">👋 Hey dev —</span>
+              <span className="text-amber-400/70"> click the status buttons to update progress. Changes save instantly.</span>
             </div>
           </>
         )}
 
-        {/* Note for devs */}
-        {items.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3 mb-6 text-sm text-blue-700">
-            <span className="font-semibold">👋 Hey dev —</span> click the status buttons on each item to update progress. Changes are saved instantly.
-          </div>
-        )}
-
         {/* Items */}
         {items.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-16 text-center">
-            <div className="text-6xl mb-4">📭</div>
-            <p className="text-slate-400 text-lg font-medium">No items in this report</p>
+          <div className="qa-card p-16 text-center opacity-40">
+            <div className="text-5xl mb-4">📭</div>
+            <p className="text-qa-muted font-medium">No items in this report</p>
           </div>
         ) : (
           <div className="space-y-4">
             {items.map((item, idx) => {
-              const cat = getCat(item.category);
-              const pri = getPri(item.priority);
+              const cat  = getCat(item.category);
+              const pri  = getPri(item.priority);
               const isDone = item.status === "done";
               return (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 transition-opacity fade-in ${isDone ? "opacity-60" : ""}`}
-                  style={{ borderLeft: `5px solid ${pri.hex}` }}
+                  className={`qa-card p-5 border-l-4 ${cat.catCls} slide-in transition-opacity ${isDone ? "done-item" : ""}`}
                 >
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <h3 className={`text-base font-bold text-slate-800 leading-snug ${isDone ? "line-through text-slate-400" : ""}`}>
-                      <span className="text-slate-300 font-normal mr-1">{idx + 1}.</span> {item.title}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="font-semibold text-qa-text text-base leading-snug">
+                      <span className="text-qa-faint font-normal text-sm mr-1">{idx + 1}.</span>
+                      {item.title}
                     </h3>
-                    <span className="flex-shrink-0 text-xs font-bold px-3 py-1 rounded-lg text-white" style={{ background: pri.hex }}>
+                    <span className={`flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border ${pri.cls}`}>
                       {pri.label}
                     </span>
                   </div>
 
-                  {/* Tags + status */}
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${cat.bg} ${cat.color} ${cat.border}`}>
-                      {cat.emoji} {cat.label}
-                    </span>
+                    <span className={`badge ${cat.badge}`}>{cat.emoji} {cat.label}</span>
                     <div className="flex gap-1.5">
-                      {STATUSES.map((st) => {
+                      {STATUSES.map(st => {
                         const active = (item.status || "todo") === st.id;
                         return (
                           <button
                             key={st.id}
                             onClick={() => updateStatus(item.id, st.id)}
-                            className={`text-xs font-semibold px-3 py-1 rounded-lg border transition-all cursor-pointer ${
-                              active
-                                ? `${st.bg} ${st.color} border-transparent ring-1 ${st.ring}`
-                                : "bg-white text-slate-400 border-slate-200 hover:border-slate-300"
-                            }`}
-                          >
-                            {st.label}
-                          </button>
+                            className={`status-chip ${active ? st.active : st.inactive}`}
+                          >{st.label}</button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* People */}
                   {(item.raised_by || item.assignee) && (
-                    <div className="flex gap-4 text-xs text-slate-500 mb-3">
-                      {item.raised_by && <span>Raised by <strong className="text-slate-700">{item.raised_by}</strong></span>}
-                      {item.assignee && <span>Assigned to <strong className="text-slate-700">{item.assignee}</strong></span>}
+                    <div className="flex gap-4 text-xs text-qa-muted mb-3">
+                      {item.raised_by && <span>Raised by <strong className="text-qa-text">{item.raised_by}</strong></span>}
+                      {item.assignee  && <span>Assigned to <strong className="text-qa-text">{item.assignee}</strong></span>}
                     </div>
                   )}
 
-                  {/* Description */}
                   {item.description && (
-                    <p className="text-sm text-slate-600 leading-relaxed mb-3 bg-slate-50 rounded-lg px-4 py-3">{item.description}</p>
+                    <p className="text-sm text-qa-muted leading-relaxed mb-3 bg-qa-surface rounded-lg px-3 py-2.5 border border-qa-border">
+                      {item.description}
+                    </p>
                   )}
 
-                  {/* Media */}
                   {item.screenshot_url && (
                     item.media_type === "video"
-                      ? <video src={item.screenshot_url} controls className="rounded-xl max-h-80 w-auto shadow-sm mt-2" />
-                      : <img src={item.screenshot_url} className="rounded-xl max-h-80 w-auto shadow-sm border border-slate-100 mt-2" alt="" />
+                      ? <video src={item.screenshot_url} controls className="rounded-xl max-h-72 border border-qa-border mt-2" />
+                      : <img src={item.screenshot_url} className="rounded-xl max-h-72 border border-qa-border mt-2" alt="" />
                   )}
 
-                  <p className="text-xs text-slate-300 mt-3">{new Date(item.created_at).toLocaleString()}</p>
+                  <p className="text-xs text-qa-faint mt-3">{new Date(item.created_at).toLocaleString()}</p>
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* Footer */}
-        <div className="text-center mt-12 text-xs text-slate-300">
-          Powered by <span className="font-semibold text-slate-400">NeoCrew QA Tool</span>
+        <div className="text-center mt-12 text-xs text-qa-faint">
+          <span className="font-display font-semibold text-zinc-600">NeoCrew QA</span>
         </div>
       </div>
     </div>

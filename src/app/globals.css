@@ -2,58 +2,103 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
-* {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  background: #09090b;
+  color: #f0f0f5;
+  font-family: 'DM Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer border-none;
-  }
-  .btn-ghost {
-    @apply bg-white hover:bg-slate-50 text-slate-600 font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer border border-slate-200;
-  }
-  .card {
-    @apply bg-white rounded-2xl shadow-sm border border-slate-100;
-  }
-  .input {
-    @apply w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none text-slate-800 text-sm transition-colors;
-  }
-  .tab {
-    @apply px-5 py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer border-none;
-  }
-  .tab-active {
-    @apply bg-blue-600 text-white;
-  }
-  .tab-inactive {
-    @apply bg-white text-slate-500 hover:bg-slate-50;
-  }
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb { background: #3a3a48; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-/* Drag over highlight */
-.drop-zone-active {
-  border-color: #3b82f6 !important;
-  background: #eff6ff !important;
+/* ── Custom components ─────────────────────────────────── */
+@layer components {
+
+  .qa-input {
+    @apply w-full bg-qa-card border border-qa-border rounded-xl px-4 py-3
+           text-qa-text text-sm placeholder:text-qa-faint
+           focus:outline-none focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/10
+           transition-all duration-150;
+  }
+
+  .qa-card {
+    @apply bg-qa-card border border-qa-border rounded-2xl;
+  }
+
+  .tab-btn {
+    @apply px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 border-none cursor-pointer;
+  }
+  .tab-active  { @apply bg-amber-500 text-zinc-950; }
+  .tab-inactive { @apply bg-transparent text-qa-muted hover:text-qa-text hover:bg-qa-card; }
+
+  .badge {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1;
+  }
+
+  .pri-btn {
+    @apply flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer border-none;
+  }
+
+  .status-chip {
+    @apply text-xs font-semibold px-3 py-1 rounded-lg border transition-all duration-150 cursor-pointer;
+  }
 }
 
-/* Smooth fade-in for cards */
-@keyframes fadeIn {
+/* ── Category left-border map ─────────────────────────── */
+.cat-bug         { border-left-color: #ef4444; }
+.cat-feature     { border-left-color: #8b5cf6; }
+.cat-improvement { border-left-color: #38bdf8; }
+.cat-question    { border-left-color: #f59e0b; }
+
+/* ── Grid-dot background for login ───────────────────── */
+.dot-grid {
+  background-image: radial-gradient(circle, #2a2a3a 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── Glow effects ─────────────────────────────────────── */
+.amber-glow { box-shadow: 0 0 24px rgba(245, 158, 11, 0.12); }
+.amber-glow-sm { box-shadow: 0 0 12px rgba(245, 158, 11, 0.08); }
+
+/* ── Animations ───────────────────────────────────────── */
+.slide-in {
+  animation: slideIn 0.2s ease-out both;
+}
+@keyframes slideIn {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.fade-in {
-  animation: fadeIn 0.2s ease-out;
+
+.done-item { opacity: 0.45; }
+.done-item h3 { text-decoration: line-through; text-decoration-color: #52525b; }
+
+/* ── Progress bar shine ───────────────────────────────── */
+.progress-bar {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+@keyframes shimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
 }
