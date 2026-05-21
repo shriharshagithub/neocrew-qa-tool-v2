@@ -31,7 +31,12 @@ const getCat  = (id) => CATS.find(c => c.id === id)  || CATS[0];
 const getPri  = (id) => PRIS.find(p => p.id === id)  || PRIS[2];
 const getStat = (id) => STATS.find(s => s.id === id) || STATS[0];
 
-const todayTitle = () => new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const todayTitle = () => {
+  const now = new Date();
+  const date = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  return `QA Session – ${date}, ${time}`;
+};
 const firstName  = (u) => (u?.user_metadata?.full_name || u?.user_metadata?.name || "").split(" ")[0] || u?.email?.split("@")[0] || "You";
 
 // ── Priority dot ──────────────────────────────────────────────────────────────
