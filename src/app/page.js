@@ -51,36 +51,63 @@ function CatBadge({ id }) {
 
 // ── Issue row (right panel + report) ─────────────────────────────────────────
 function IssueRow({ item, idx, onRemove, onStatus, showStatus }) {
-  const st = getStat(item.status || "todo");
   const isDone = item.status === "done";
+  const hasExtra = item.description || item.screenshot_url;
   return (
-    <div className={`l-row group slide-in ${isDone ? "done-row" : ""}`}>
-      <PriDot id={item.priority} />
-      <span className="row-title flex-1 text-ink text-sm truncate">{item.title}</span>
-      <CatBadge id={item.category} />
-      {item.raised_by && (
-        <span className="hidden sm:block text-xs text-ink-tertiary flex-shrink-0">{item.raised_by}</span>
+    <div className={`group slide-in border-b border-hairline last:border-b-0 px-4 py-3 hover:bg-s1 transition-colors duration-75 ${isDone ? "done-row" : ""}`}>
+      {/* Top row */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <PriDot id={item.priority} />
+        <span className={`row-title flex-1 text-sm min-w-0 ${hasExtra ? "" : "truncate"} ${isDone ? "text-ink-subtle" : "text-ink"}`}>
+          {item.title}
+        </span>
+        <CatBadge id={item.category} />
+        {item.raised_by && (
+          <span className="hidden sm:block text-xs text-ink-tertiary flex-shrink-0">{item.raised_by}</span>
+        )}
+        {showStatus ? (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {STATS.map(s => (
+              <button
+                key={s.id}
+                onClick={() => onStatus(item.id, s.id)}
+                className="l-chip text-xs"
+                style={
+                  (item.status || "todo") === s.id
+                    ? { color: s.color, background: s.activeBg, borderColor: `${s.color}40` }
+                    : { color: "#62666d", background: "transparent", borderColor: "#23252a" }
+                }
+              >{s.label}</button>
+            ))}
+          </div>
+        ) : (
+          <button
+            onClick={() => onRemove(item.id)}
+            className="opacity-0 group-hover:opacity-100 text-ink-tertiary hover:text-tag-red text-xs bg-transparent border-none cursor-pointer transition-all ml-1 flex-shrink-0"
+          >✕</button>
+        )}
+      </div>
+
+      {/* Description */}
+      {item.description && (
+        <p className="text-xs text-ink-subtle mt-1.5 ml-[18px] leading-relaxed">
+          {item.description}
+        </p>
       )}
-      {showStatus ? (
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {STATS.map(s => (
-            <button
-              key={s.id}
-              onClick={() => onStatus(item.id, s.id)}
-              className="l-chip text-xs"
-              style={
-                (item.status || "todo") === s.id
-                  ? { color: s.color, background: s.activeBg, borderColor: `${s.color}40` }
-                  : { color: "#62666d", background: "transparent", borderColor: "#23252a" }
-              }
-            >{s.label}</button>
-          ))}
+
+      {/* Attachment */}
+      {item.screenshot_url && (
+        <div className="mt-2 ml-[18px]">
+          {item.media_type === "video"
+            ? <video src={item.screenshot_url} controls className="rounded-lg max-h-48 border border-hairline" />
+            : <img
+                src={item.screenshot_url}
+                className="rounded-lg max-h-48 border border-hairline object-contain cursor-pointer"
+                alt=""
+                onClick={() => window.open(item.screenshot_url, "_blank")}
+              />
+          }
         </div>
-      ) : (
-        <button
-          onClick={() => onRemove(item.id)}
-          className="opacity-0 group-hover:opacity-100 text-ink-tertiary hover:text-tag-red text-xs bg-transparent border-none cursor-pointer transition-all ml-1"
-        >✕</button>
       )}
     </div>
   );
